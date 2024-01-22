@@ -10,7 +10,23 @@ import torch.nn.functional as F
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, accuracy_score, recall_score, roc_auc_score, precision_score, confusion_matrix
 
-def train(g, model):
+### HELPERS ###
+def get_best_f1(labels, probs):
+    best_f1, best_thre = 0, 0
+    for thres in np.linspace(0.05, 0.95, 19):
+        preds = np.zeros_like(labels)
+        preds[probs[:,1] > thres] = 1
+        mf1 = f1_score(labels, preds, average='macro')
+        if mf1 > best_f1:
+            best_f1 = mf1
+            best_thre = thres
+    return best_f1, best_thre
+
+
+### MAIN TRAIN LOOP ###
+def train(g, model, 
+          opt=None,
+          verbose=True, **kwargs):
   features = g.ndata['feature']
   labels = g.ndata['label']
   index = list(range(len(labels)))
@@ -18,11 +34,11 @@ def train(g, model):
   # Train Test Split
   idx_train, idx_rest, y_train, y_rest = train_test_split(
       index, labels[index], stratify=labels[index],
-      train_size = 0.8, random_state = 7, shuffle=True
+      train_size = 0.8, random_state = kwargs['random_state'], shuffle=True
   )
   idx_valid, idx_test, y_valid, y_test = train_test_split(
       idx_rest, y_rest, stratify=y_rest,
-      test_size = 0.67, random_state = 7, shuffle=True
+      test_size = 0.67, random_state = kwargs['random_state'], shuffle=True
   )
 
   train_mask = torch.zeros([len(labels)]).bool()
@@ -34,7 +50,7 @@ def train(g, model):
   test_mask[idx_test] = 1
 
   # Optimizer
-  optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+  optimizer = torch.optim.Adam(model.parameters(), lr=0.01) if opt is None else optimizer
 
   # Inits
   best_f1, final_tf1, final_trec, final_tpre, final_tmf1, final_tauc = 0., 0., 0., 0., 0., 0.
@@ -59,7 +75,7 @@ def train(g, model):
 
       probs = logits.softmax(1)
       f1, thres = get_best_f1(labels[val_mask], probs[val_mask])
-      preds = numpy.zeros_like(labels)
+      preds = np.zeros_like(labels)
       preds[probs[:, 1] > thres] = 1
 
       trec = recall_score(labels[test_mask], preds[test_mask])

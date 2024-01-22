@@ -11,8 +11,7 @@ import math
 import copy
 import numpy as np
 
-### CALL WRAPPER FUNCTION
-
+### CALL WRAPPER FUNCTION ###
 def Benchmark(in_feats, bname='GCN',
               h_feats=32, num_classes=2, **kwargs):
     if bname == 'GCN':
@@ -20,8 +19,7 @@ def Benchmark(in_feats, bname='GCN',
     else:
         return # TODO: throw exception?
 
-### SIMPLE NN BENCHMARKS ###
-
+### Common Submodules ###
 class MLP(nn.Module):
     def __init__(self, in_feats, h_feats=32, num_classes=2, 
                  num_layers=2, dropout_rate=0, activation='ReLU', **kwargs):
@@ -55,9 +53,11 @@ class MLP(nn.Module):
                 h = self.act(h)
         return h
 
+### SIMPLE NN BENCHMARKS ###
+## GCN
 class GCN(nn.Module):
-    def __init__(self, in_feats, h_feats=32, num_classes=2, 
-                 num_layers=2, mlp_layers=1, 
+    def __init__(self, in_feats, num_classes=2, 
+                 h_feats=32, num_layers=2, mlp_layers=1, 
                  dropout_rate=0, activation='ReLU', 
                  **kwargs):
         
@@ -86,11 +86,22 @@ class GCN(nn.Module):
             h = layer(graph, h)
         h = self.mlp(h, False)
         return h
-    
-### GENERIC FRAUD BENCHMARKS ###
+
+## GCN V2
+## GraphSAGE
+## GIN
+## GAT
     
 ### HOMO/HETEROPHILY-BASED FRAUD BENCHMARKS ###
-    
-### CAMOUFLAGE-BASED FRAUD BENCHMARKS ###
+## GPRGNN
+## SPLITGNN
+## SEC-GFD
+
+### CAMOUFLAGE-BASED FRAUD BENCHMARKS ###    
+## CARE-GNN
+## COFRAUD
+## ACD
     
 ### NEIGHBORHOOD TREE-BASED BENCHMARKS ###
+## RF-GRAPH
+## XGB-GRAPH
