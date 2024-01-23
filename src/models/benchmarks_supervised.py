@@ -54,7 +54,7 @@ class GCN(nn.Module):
         h_feats = model_config['h_feats']
         num_layers = model_config['num_layers']
         mlp_h_feats = model_config['mlp_h_feats'] 
-        mlp_num_layers = model_config['mlp_numlayers']
+        mlp_num_layers = model_config['mlp_num_layers']
         dropout_rate = model_config['dropout_rate']
         act_name = model_config['act_name']
         
