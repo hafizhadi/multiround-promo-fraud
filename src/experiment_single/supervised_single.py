@@ -85,6 +85,7 @@ class BaseExperiment(object):
 
         # Main Training Loop
         time_start = time.time()
+        print('Starting training!')
         for e in range(self.train_config['num_epoch']):
             # Forward pass
             self.model.train()
