@@ -56,10 +56,7 @@ class MLP(nn.Module):
 ### SIMPLE NN BENCHMARKS ###
 ## GCN
 class GCN(nn.Module):
-    def __init__(self, in_feats, num_classes=2, 
-                 h_feats=32, num_layers=2, mlp_layers=1, 
-                 dropout_rate=0, activation='ReLU', 
-                 **kwargs):
+    def __init__(self, in_feats, num_classes, model_config, **kwargs):
         
         super().__init__()
         
@@ -91,16 +88,44 @@ class GCN(nn.Module):
 ## GraphSAGE
 ## GIN
 ## GAT
+
+### SPECTRAL
+## BWGNN -> https://github.com/squareRoot3/GADBench
+## SPLITGNN -> https://github.com/Split-GNN/SplitGNN/tree/master/src
+
+## GHRN -> https://github.com/squareRoot3/GADBench
+class GHRN(nn.module):
+    def __init__():
+        super().__init__()
     
+    def forward(self, graph):
+        return 0
+
 ### HOMO/HETEROPHILY-BASED FRAUD BENCHMARKS ###
-## GPRGNN
-## SPLITGNN
-## SEC-GFD
+## GPRGNN -> https://github.com/jianhao2016/GPRGNN/tree/master
+## GHRN -> https://github.com/squareRoot3/GADBench
+
+## H2-FDetector -> https://github.com/squareRoot3/GADBench
+class H2FD(nn.module):
+    def __init__():
+        super().__init__()
+    
+    def forward(self, graph):
+        return 0    
+
+## SEC-GFD - NO LINK
 
 ### CAMOUFLAGE-BASED FRAUD BENCHMARKS ###    
-## CARE-GNN
-## COFRAUD
-## ACD
+## CARE-GNN - https://github.com/squareRoot3/GADBench
+class CAREGNN(nn.module):
+    def __init__():
+        super().__init__()
+    
+    def forward(self, graph):
+        return 0        
+
+## COFRAUD - NO LINK
+## ACD - NO LINK
     
 ### NEIGHBORHOOD TREE-BASED BENCHMARKS ###
 ## RF-GRAPH
