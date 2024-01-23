@@ -36,12 +36,12 @@ def get_best_f1(labels, probs):
 class BaseExperiment(object):
     def __init__(self, model_config, train_config, graph):
 
-        self.data = {'graph': graph}
+        self.dset = {'graph': graph}
         self.model_config = model_config
         self.train_config = train_config      
         
-        features = self.data['graph'].ndata['feature']
-        labels = self.data['graph'].ndata['label']
+        features = self.dset['graph'].ndata['feature']
+        labels = self.dset['graph'].ndata['label']
         
         in_dimension = features.shape[1]
         class_num =  labels.shape[0]
@@ -59,13 +59,13 @@ class BaseExperiment(object):
         )
 
         # Assign masks
-        self.data['train_mask'] = torch.zeros([len(labels)]).bool()
-        self.data['val_mask'] = torch.zeros([len(labels)]).bool()
-        self.data['test_mask'] = torch.zeros([len(labels)]).bool()
+        self.dset['train_mask'] = torch.zeros([len(labels)]).bool()
+        self.dset['val_mask'] = torch.zeros([len(labels)]).bool()
+        self.dset['test_mask'] = torch.zeros([len(labels)]).bool()
 
-        self.data['train_mask'][idx_train] = 1
-        self.data['val_mask'][idx_valid] = 1
-        self.data['test_mask'][idx_test] = 1
+        self.dset['train_mask'][idx_train] = 1
+        self.dset['val_mask'][idx_valid] = 1
+        self.dset['test_mask'][idx_test] = 1
 
         # Additional inits
         self.train_config['ce_weight'] = (1-labels[self.train_mask]).sum().item() / labels[self.train_mask].sum().item()
@@ -80,16 +80,16 @@ class BaseExperiment(object):
         self.optimizer = self.train_config['optimizer'](self.model.parameters(), lr=self.train_config['learning_rate'])
         self.loss = self.train_config['loss']
 
-        features = self.data['graph'].ndata['feature']
-        labels = self.data['graph'].ndata['label']
+        features = self.dset['graph'].ndata['feature']
+        labels = self.dset['graph'].ndata['label']
 
         # Main Training Loop
         time_start = time.time()
         for e in range(self.train_config['num_epoch']):
             # Forward pass
             self.model.train()
-            logits = self.model(self.data['graph'])
-            epoch_loss = self.loss(logits[self.data['train_mask']], labels[self.data['train_mask']], weight=torch.tensor([1., self.train_config['ce_weight']]))
+            logits = self.model(self.dset['graph'])
+            epoch_loss = self.loss(logits[self.dset['train_mask']], labels[self.dset['train_mask']], weight=torch.tensor([1., self.train_config['ce_weight']]))
 
             # Backward pass
             self.optimizer.zero_grad()
@@ -100,14 +100,14 @@ class BaseExperiment(object):
             self.model.eval()
             probs = logits.softmax(1)
 
-            f1, thres = get_best_f1(labels[self.data['val_mask']], probs[self.data['val_mask']])
+            f1, thres = get_best_f1(labels[self.dset['val_mask']], probs[self.dset['val_mask']])
             preds = np.zeros_like(labels)
             preds[probs[:, 1] > thres] = 1
 
-            trec = recall_score(labels[self.data['test_mask']], preds[self.data['test_mask']])
-            tpre = precision_score(labels[self.data['test_mask']], preds[self.data['test_mask']])
-            tmf1 = f1_score(labels[self.data['test_mask']], preds[self.data['test_mask']], average='macro')
-            tauc = roc_auc_score(labels[self.data['test_mask']], probs[self.data['test_mask']][:, 1].detach().numpy())
+            trec = recall_score(labels[self.dset['test_mask']], preds[self.dset['test_mask']])
+            tpre = precision_score(labels[self.dset['test_mask']], preds[self.dset['test_mask']])
+            tmf1 = f1_score(labels[self.dset['test_mask']], preds[self.dset['test_mask']], average='macro')
+            tauc = roc_auc_score(labels[self.dset['test_mask']], probs[self.dset['test_mask']][:, 1].detach().numpy())
 
             if best_f1 < f1:
                 best_f1 = f1
