@@ -58,6 +58,10 @@ class GCN(nn.Module):
         dropout_rate = model_config['dropout_rate']
         act_name = model_config['act_name']
         
+        # Other modules
+        self.act = getattr(nn, act_name)()
+        self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
+
         # Layers
         self.layers = nn.ModuleList()
         if num_layers == 0:
@@ -66,11 +70,7 @@ class GCN(nn.Module):
             self.layers.append(dglnn.GraphConv(in_feats, h_feats, activation=self.act))
             for i in range(num_layers-1):
                 self.layers.append(dglnn.GraphConv(h_feats, h_feats, activation=self.act))
-        self.mlp = MLP(h_feats, mlp_h_feats, num_classes, mlp_num_layers, dropout_rate)
-        
-        # Other modules
-        self.act = getattr(nn, act_name)()
-        self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
+        self.mlp = MLP(h_feats, mlp_h_feats, num_classes, mlp_num_layers, dropout_rate)  
 
     def forward(self, graph):
         h = graph.ndata['feature']
