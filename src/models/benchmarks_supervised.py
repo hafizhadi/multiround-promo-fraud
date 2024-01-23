@@ -53,7 +53,8 @@ class GCN(nn.Module):
         super().__init__()
         h_feats = model_config["h_feats"]
         num_layers = model_config["num_layers"]
-        mlp_layers = model_config["mlp_layers"]
+        mlp_h_feats = model_config["mlp_h_feats"] 
+        mlp_num_layers = model_config["mlp_layers"]
         dropout_rate = model_config["dropout_rate"]
         act_name = model_config["act_name"]
         
@@ -65,7 +66,7 @@ class GCN(nn.Module):
             self.layers.append(dglnn.GraphConv(in_feats, h_feats, activation=self.act))
             for i in range(num_layers-1):
                 self.layers.append(dglnn.GraphConv(h_feats, h_feats, activation=self.act))
-        self.mlp = MLP(h_feats, h_feats, num_classes, mlp_layers, dropout_rate)
+        self.mlp = MLP(h_feats, mlp_h_feats, num_classes, mlp_num_layers, dropout_rate)
         
         # Other modules
         self.act = getattr(nn, act_name)()
