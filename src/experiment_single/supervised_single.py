@@ -88,16 +88,19 @@ class BaseExperiment(object):
         print('Starting training!')
         for e in range(self.train_config['num_epoch']):
             # Forward pass
+            print("Forward")
             self.model.train()
             logits = self.model(self.dset['graph'])
             epoch_loss = self.loss(logits[self.dset['train_mask']], labels[self.dset['train_mask']], weight=torch.tensor([1., self.train_config['ce_weight']]))
 
             # Backward pass
+            print("Backward")
             self.optimizer.zero_grad()
             self.loss.backward()
             self.optimizer.step()
 
             # Evaluate
+            print("Evaluate")
             self.model.eval()
             probs = logits.softmax(1)
 
