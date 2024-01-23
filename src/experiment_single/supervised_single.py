@@ -40,8 +40,8 @@ class BaseExperiment(object):
         self.model_config = model_config
         self.train_config = train_config      
         
-        features = self.graph.ndata['feature']
-        labels = self.graph.ndata['label']
+        features = self.data['graph'].ndata['feature']
+        labels = self.data['graph'].ndata['label']
         
         in_dimension = features.shape[1]
         class_num =  labels.shape[0]
