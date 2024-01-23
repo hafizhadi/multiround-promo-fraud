@@ -11,14 +11,6 @@ import math
 import copy
 import numpy as np
 
-### CALL WRAPPER FUNCTION ###
-def Benchmark(in_feats, bname='GCN',
-              h_feats=32, num_classes=2, **kwargs):
-    if bname == 'GCN':
-        return GCN(in_feats, h_feats=h_feats, num_classes=num_classes)
-    else:
-        return # TODO: throw exception?
-
 ### Common Submodules ###
 class MLP(nn.Module):
     def __init__(self, in_feats, h_feats=32, num_classes=2, 
@@ -98,7 +90,7 @@ class GCN(nn.Module):
 ## SPLITGNN -> https://github.com/Split-GNN/SplitGNN/tree/master/src
 
 ## GHRN -> https://github.com/squareRoot3/GADBench
-class GHRN(nn.module):
+class GHRN(nn.Module):
     def __init__():
         super().__init__()
     
@@ -110,7 +102,7 @@ class GHRN(nn.module):
 ## GHRN -> https://github.com/squareRoot3/GADBench
 
 ## H2-FDetector -> https://github.com/squareRoot3/GADBench
-class H2FD(nn.module):
+class H2FD(nn.Module):
     def __init__():
         super().__init__()
     
@@ -121,7 +113,7 @@ class H2FD(nn.module):
 
 ### CAMOUFLAGE-BASED FRAUD BENCHMARKS ###    
 ## CARE-GNN - https://github.com/squareRoot3/GADBench
-class CAREGNN(nn.module):
+class CAREGNN(nn.Module):
     def __init__():
         super().__init__()
     
