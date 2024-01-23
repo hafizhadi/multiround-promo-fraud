@@ -68,7 +68,7 @@ class BaseExperiment(object):
         self.dset['test_mask'][idx_test] = 1
 
         # Additional inits
-        self.train_config['ce_weight'] = (1-labels[self.train_mask]).sum().item() / labels[self.train_mask].sum().item()
+        self.train_config['ce_weight'] = (1-labels[self.dset['train_mask']]).sum().item() / labels[self.dset['train_mask']].sum().item()
     
         # Model
         self.model = model_dict[model_config['model_name']](in_dimension, class_num, model_config)
