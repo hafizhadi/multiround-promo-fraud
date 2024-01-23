@@ -59,9 +59,13 @@ class GCN(nn.Module):
     def __init__(self, in_feats, num_classes, model_config, **kwargs):
         
         super().__init__()
+        h_feats = model_config["h_feats"]
+        num_layers = model_config["num_layers"]
+        mlp_layers = model_config["mlp_layers"]
+        dropout_rate = model_config["dropout_rate"]
+        act_name = model_config["act_name"]
         
         # Layers
-        self.h_feats = h_feats
         self.layers = nn.ModuleList()
         if num_layers == 0:
             return
@@ -72,7 +76,7 @@ class GCN(nn.Module):
         self.mlp = MLP(h_feats, h_feats, num_classes, mlp_layers, dropout_rate)
         
         # Other modules
-        self.act = getattr(nn, activation)()
+        self.act = getattr(nn, act_name)()
         self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
 
     def forward(self, graph):
