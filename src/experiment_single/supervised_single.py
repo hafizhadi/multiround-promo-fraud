@@ -44,7 +44,7 @@ class BaseExperiment(object):
         labels = self.dset['graph'].ndata['label']
         
         in_dimension = features.shape[1]
-        class_num =  labels.shape[0]
+        class_num =  labels.unique(return_counts=True)[0].shape[0]
 
         index = list(range(len(labels)))
 
