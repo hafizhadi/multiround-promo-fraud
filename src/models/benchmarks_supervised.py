@@ -15,6 +15,7 @@ import numpy as np
 class MLP(nn.Module):
     def __init__(self, in_feats, h_feats=32, num_classes=2, 
                  num_layers=2, dropout_rate=0, activation='ReLU', **kwargs):
+        print('MLP:__init__ | ', in_feats, h_feats, num_classes, num_layers, dropout_rate, activation)
 
         super(MLP, self).__init__()
 
@@ -51,6 +52,7 @@ class MLP(nn.Module):
 ## GCN
 class GCN(nn.Module):
     def __init__(self, in_feats, num_classes, model_config, **kwargs):
+        print("GCN:__init__ | ", in_feats, num_classes, model_config)
         
         super().__init__()
         h_feats = model_config['h_feats']
@@ -76,6 +78,7 @@ class GCN(nn.Module):
         self.mlp = MLP(h_feats, h_feats=mlp_h_feats, num_classes=num_classes, num_layers=mlp_num_layers, dropout_rate=dropout_rate)  
 
     def forward(self, blocks, x):
+        print("GCN:forward | ", blocks, x)
         h = x
         for i, layer in enumerate(self.layers):
             if i != 0:
