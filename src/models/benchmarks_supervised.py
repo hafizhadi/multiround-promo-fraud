@@ -43,6 +43,8 @@ class MLP(nn.Module):
             h = layer(h)
             if i != len(self.layers)-1:
                 h = self.act(h)
+
+        print('MLP output', h.shape)
         return h
 
 ### SIMPLE NN BENCHMARKS ###
@@ -80,6 +82,8 @@ class GCN(nn.Module):
                 h = self.dropout(h)
             h = layer(blocks if self.train_mode != 'batch' else blocks[i], h)        
         h = self.mlp(h, False)
+
+        print('GCN Output', h.shape)
         return h
 
 ## GCN V2
