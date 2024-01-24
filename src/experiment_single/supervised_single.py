@@ -5,7 +5,7 @@ from models.benchmarks_supervised import GCN, GHRN, H2FD, CAREGNN
 import dgl
 import torch
 
-import time
+import time, psutil, os
 import numpy as np
 import torch.nn.functional as F
 from sklearn.model_selection import train_test_split
@@ -102,7 +102,7 @@ class BaseExperiment(object):
         verPrint(self.verbose, 1, 'Starting training!')
         for e in range(self.train_config['num_epoch']):
             self.model.train()
-            self.logits = torch.zeros([len(labels)])
+            self.logits = torch.zeros([len(labels), 2])
 
             if self.train_config['train_mode'] != 'batch':
                 # Forward pass
@@ -129,7 +129,7 @@ class BaseExperiment(object):
 
                     logits = self.model(blocks, input_features)
                     print(logits)
-                    self.logits[output_nodes] = logits[:,0].cpu()
+                    self.logits[output_nodes] = logits.cpu()
 
                     epoch_loss = self.loss(logits, output_labels, weight=torch.tensor([1., self.train_config['ce_weight']]).to(torch.device('cuda')))
 
@@ -138,6 +138,11 @@ class BaseExperiment(object):
                     self.optimizer.zero_grad()
                     epoch_loss.backward()
                     self.optimizer.step()
+
+                    # The following code is used to record the memory usage
+                    py_process = psutil.Process(os.getpid())
+                    print(f"CPU Memory Usage: {py_process.memory_info().rss / (1024 ** 3)} GB")
+                    print(f"GPU Memory Usage: {torch.cuda.memory_reserved() / (1024 ** 3)} GB")
 
             # Evaluate
             verPrint(self.verbose, 1, 'Evaluate')
