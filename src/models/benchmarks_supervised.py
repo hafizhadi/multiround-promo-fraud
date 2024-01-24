@@ -71,7 +71,7 @@ class GCN(nn.Module):
             self.layers.append(dglnn.GraphConv(in_feats, h_feats, activation=self.act))
             for i in range(num_layers-1):
                 self.layers.append(dglnn.GraphConv(h_feats, h_feats, activation=self.act))
-        self.mlp = MLP(h_feats, mlp_h_feats, num_classes, mlp_num_layers, dropout_rate)  
+        self.mlp = MLP(h_feats, h_feats=mlp_h_feats, num_classes=num_classes, num_layers=mlp_num_layers, dropout_rate=dropout_rate)  
 
     def forward(self, blocks, x):
         h = x
