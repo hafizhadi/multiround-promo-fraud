@@ -69,6 +69,15 @@ class BaseExperiment(object):
 
         # Additional inits
         self.train_config['ce_weight'] = (1-labels[self.dset['train_mask']]).sum().item() / labels[self.dset['train_mask']].sum().item()
+        if train_config['train_mode'] == 'batch':
+            model_config['train_mode'] = 'batch'
+
+            self.dset['sampler'] = dgl.dataloading.MultiLayerFullNeighborSampler(model_config['num_layers'])
+            self.dset['dataloader'] = dgl.dataloading.DataLoader(
+                self.dset['graph'], idx_train, self.dset['sampler'],
+                batch_size=train_config['batch_size'], shuffle=True, drop_last=False, num_workers=train_config['num_workers']
+            )
+            
     
         # Model
         self.model = model_dict[model_config['model_name']](in_dimension, class_num, model_config)
@@ -90,13 +99,23 @@ class BaseExperiment(object):
             # Forward pass
             print("Forward")
             self.model.train()
-            logits = self.model(self.dset['graph'])
-            epoch_loss = self.loss(logits[self.dset['train_mask']], labels[self.dset['train_mask']], weight=torch.tensor([1., self.train_config['ce_weight']]))
+
+            if self.train_config['train_mode'] != 'batch':
+                logits = self.model(self.dset['graph'], self.dset['graph'].ndata['feature'])
+                epoch_loss = self.loss(logits[self.dset['train_mask']], labels[self.dset['train_mask']], weight=torch.tensor([1., self.train_config['ce_weight']]))
+            else:
+                for input_nodes, output_nodes, blocks in self.dset['dataloader']:
+                    blocks = [b.to(torch.device('cuda')) for b in blocks]
+                    input_features = blocks[0].srcdata['feature']
+                    output_labels = blocks[-1].dstdata['label']
+
+                    logits = self.model(blocks, input_features)
+                    epoch_loss = self.loss(logits, output_labels, weight=torch.tensor([1., self.train_config['ce_weight']]))
 
             # Backward pass
             print("Backward")
             self.optimizer.zero_grad()
-            self.loss.backward()
+            epoch_loss.backward()
             self.optimizer.step()
 
             # Evaluate

@@ -61,7 +61,8 @@ class GCN(nn.Module):
         # Other modules
         self.act = getattr(nn, act_name)()
         self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
-
+        self.train_mode = model_config['train_mode']
+        
         # Layers
         self.layers = nn.ModuleList()
         if num_layers == 0:
@@ -72,12 +73,12 @@ class GCN(nn.Module):
                 self.layers.append(dglnn.GraphConv(h_feats, h_feats, activation=self.act))
         self.mlp = MLP(h_feats, mlp_h_feats, num_classes, mlp_num_layers, dropout_rate)  
 
-    def forward(self, graph):
-        h = graph.ndata['feature']
+    def forward(self, blocks, x):
+        h = x
         for i, layer in enumerate(self.layers):
             if i != 0:
                 h = self.dropout(h)
-            h = layer(graph, h)
+            h = layer(blocks if self.train_mode != 'batch' else blocks[i], h)        
         h = self.mlp(h, False)
         return h
 
