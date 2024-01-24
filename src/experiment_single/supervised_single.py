@@ -81,6 +81,9 @@ class BaseExperiment(object):
     
         # Model
         self.model = model_dict[model_config['model_name']](in_dimension, class_num, model_config)
+    
+        if train_config['train_mode'] == 'batch':
+            self.model = self.model.to(torch.device('cuda'))
 
     # Base train is just when model outputs logits and normal backprop
     def train(self):
