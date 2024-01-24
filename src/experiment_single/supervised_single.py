@@ -82,7 +82,7 @@ class BaseExperiment(object):
             
     
         # Model
-        self.model = model_dict[model_config['model_name']](in_dimension, class_num, model_config)
+        self.model = model_dict[model_config['model_name']](in_dimension, class_num, model_config, verbose=self.verbose)
     
         if train_config['train_mode'] == 'batch':
             self.model.cuda()
