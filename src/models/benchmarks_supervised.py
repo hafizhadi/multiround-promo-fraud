@@ -1,23 +1,18 @@
-import torch
-import torch.nn.functional as F
-import dgl.function as fn
-import sympy
-import scipy
+from utils import verPrint
+
 import dgl.nn.pytorch.conv as dglnn
-import dgl
 from torch import nn
-from scipy.special import comb
-import math
-import copy
-import numpy as np
 
 ### Common Submodules ###
 class MLP(nn.Module):
     def __init__(self, in_feats, h_feats=32, num_classes=2, 
-                 num_layers=2, dropout_rate=0, activation='ReLU', **kwargs):
-        print('MLP:__init__ | ', in_feats, h_feats, num_classes, num_layers, dropout_rate, activation)
-
+                 num_layers=2, dropout_rate=0, activation='ReLU', 
+                 verbose=0, **kwargs):
         super(MLP, self).__init__()
+        
+        # Set verbosity
+        self.verbose=verbose       
+        verPrint(self.verbose, 3, 'MLP:__init__ | ', in_feats, h_feats, num_classes, num_layers, dropout_rate, activation, kwargs)
 
         # Linears
         self.layers = nn.ModuleList()       
@@ -36,6 +31,7 @@ class MLP(nn.Module):
         self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
 
     def forward(self, h, is_graph=True):
+        verPrint(self.verbose, 3, 'MLP:forward | ', h.shape, is_graph)
         if is_graph:
             h = h.ndata['feature']
         for i, layer in enumerate(self.layers):
@@ -44,15 +40,15 @@ class MLP(nn.Module):
             h = layer(h)
             if i != len(self.layers)-1:
                 h = self.act(h)
-
-        print('MLP output', h.shape)
         return h
 
 ### SIMPLE NN BENCHMARKS ###
 ## GCN
 class GCN(nn.Module):
-    def __init__(self, in_feats, num_classes, model_config, **kwargs):
-        print("GCN:__init__ | ", in_feats, num_classes, model_config)
+    def __init__(self, in_feats, num_classes, model_config, verbose=0, **kwargs):
+        # Set verbosity
+        self.verbose=verbose       
+        verPrint(self.verbose, 3, 'GCN:__init__ | ', in_feats, num_classes, model_config)
         
         super().__init__()
         h_feats = model_config['h_feats']
@@ -78,7 +74,7 @@ class GCN(nn.Module):
         self.mlp = MLP(h_feats, h_feats=mlp_h_feats, num_classes=num_classes, num_layers=mlp_num_layers, dropout_rate=dropout_rate)  
 
     def forward(self, blocks, x):
-        print("GCN:forward | ", blocks, x)
+        verPrint(self.verbose, 3, 'GCN:forward | ', blocks, x)
         h = x
         for i, layer in enumerate(self.layers):
             if i != 0:
@@ -86,7 +82,6 @@ class GCN(nn.Module):
             h = layer(blocks if self.train_mode != 'batch' else blocks[i], h)        
         h = self.mlp(h, False)
 
-        print('GCN Output', h.shape)
         return h
 
 ## GCN V2

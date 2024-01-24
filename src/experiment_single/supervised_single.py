@@ -1,9 +1,9 @@
-import dgl
-from dgl.nn import GraphConv
+from utils import verPrint
 from models.benchmarks_supervised import GCN, GHRN, H2FD, CAREGNN
 
+
+import dgl
 import torch
-import torch.nn as nn
 
 import time
 import numpy as np
@@ -20,21 +20,23 @@ model_dict = {
     'CARE-GNN':CAREGNN
 }
 
-### HELPERS ###
-def get_best_f1(labels, probs):
-    best_f1, best_thre = 0, 0
-    for thres in np.linspace(0.05, 0.95, 19):
-        preds = np.zeros_like(labels)
-        preds[probs[:,1] > thres] = 1
-        mf1 = f1_score(labels, preds, average='macro')
-        if mf1 > best_f1:
-            best_f1 = mf1
-            best_thre = thres
-    return best_f1, best_thre
-
 ### BASE EXPERIMENT CLASS ###
 class BaseExperiment(object):
-    def __init__(self, model_config, train_config, graph):
+    ## Helpers
+    def get_best_f1(labels, probs):
+        best_f1, best_thre = 0, 0
+        for thres in np.linspace(0.05, 0.95, 19):
+            preds = np.zeros_like(labels)
+            preds[probs[:,1] > thres] = 1
+            mf1 = f1_score(labels, preds, average='macro')
+            if mf1 > best_f1:
+                best_f1 = mf1
+                best_thre = thres
+        return best_f1, best_thre
+
+    ## Class Methods
+    def __init__(self, model_config, train_config, graph, verbose=0):
+        self.verbose=verbose
 
         self.dset = {'graph': graph}
         self.model_config = model_config
@@ -97,42 +99,48 @@ class BaseExperiment(object):
 
         # Main Training Loop
         time_start = time.time()
-        print('Starting training!')
+        verPrint(self.verbose, 1, 'Starting training!')
         for e in range(self.train_config['num_epoch']):
-            # Forward pass
-            print("Forward")
             self.model.train()
 
             if self.train_config['train_mode'] != 'batch':
+                # Forward pass
+                verPrint(self.verbose, 2, 'Forward')
                 logits = self.model(self.dset['graph'], self.dset['graph'].ndata['feature'])
                 epoch_loss = self.loss(logits[self.dset['train_mask']], labels[self.dset['train_mask']], weight=torch.tensor([1., self.train_config['ce_weight']]))
+
+                # Backward pass
+                verPrint(self.verbose, 2, 'Backward')
+                self.optimizer.zero_grad()
+                epoch_loss.backward()
+                self.optimizer.step()
             else:
-                print('Batch training!')
+                i = 0
                 for input_nodes, output_nodes, blocks in self.dset['dataloader']:
-                    print('New block.')
+                    i += 1
+
+                    # Batch forward
+                    verPrint(self.verbose, 2, f'Forward for batch {i}')
                     blocks = [b.to(torch.device('cuda')) for b in blocks]
                     input_features = blocks[0].srcdata['feature']
                     output_labels = blocks[-1].dstdata['label']
 
                     logits = self.model(blocks, input_features)
 
-                    print('Logits', logits.unique(return_counts=True), logits.shape)
-                    print('Labels', output_labels.unique(return_counts=True), labels.shape)
-
                     epoch_loss = self.loss(logits, output_labels, weight=torch.tensor([1., self.train_config['ce_weight']]).to(torch.device('cuda')))
 
-            # Backward pass
-            print("Backward")
-            self.optimizer.zero_grad()
-            epoch_loss.backward()
-            self.optimizer.step()
+                    # Backward pass
+                    verPrint(self.verbose, 2, 'Backward')
+                    self.optimizer.zero_grad()
+                    epoch_loss.backward()
+                    self.optimizer.step()
 
             # Evaluate
-            print("Evaluate")
+            verPrint(self.verbose, 1, 'Evaluate')
             self.model.eval()
             probs = logits.softmax(1)
 
-            f1, thres = get_best_f1(labels[self.dset['val_mask']], probs[self.dset['val_mask']])
+            f1, thres = self.get_best_f1(labels[self.dset['val_mask']], probs[self.dset['val_mask']])
             preds = np.zeros_like(labels)
             preds[probs[:, 1] > thres] = 1
 
@@ -147,11 +155,11 @@ class BaseExperiment(object):
                 final_tpre = tpre
                 final_tmf1 = tmf1
                 final_tauc = tauc
-            print('Epoch {}, loss: {:.4f}, val mf1: {:.4f}, (best {:.4f})'.format(e, epoch_loss, f1, best_f1))
+            verPrint(self.verbose, 1, 'Epoch {}, loss: {:.4f}, val mf1: {:.4f}, (best {:.4f})'.format(e, epoch_loss, f1, best_f1))
 
         time_end = time.time()
-        print('time cost: ', time_end - time_start, 's')
-        print('Test: REC {:.2f} PRE {:.2f} MF1 {:.2f} AUC {:.2f}'.format(final_trec*100,
+        verPrint(self.verbose, 1, 'time cost: ', time_end - time_start, 's')
+        verPrint(self.verbose, 1, 'Test: REC {:.2f} PRE {:.2f} MF1 {:.2f} AUC {:.2f}'.format(final_trec*100,
                                                                             final_tpre*100, final_tmf1*100, final_tauc*100))
         return final_tmf1, final_tauc
     
