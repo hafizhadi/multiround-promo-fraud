@@ -102,7 +102,7 @@ class BaseExperiment(object):
         verPrint(self.verbose, 1, 'Starting training!')
         for e in range(self.train_config['num_epoch']):
             self.model.train()
-            self.logits = torch.zeros([len(labels), 2])
+            self.logits = torch.zeros([len(labels), 2]).to(torch.device('cuda'))
 
             if self.train_config['train_mode'] != 'batch':
                 # Forward pass
