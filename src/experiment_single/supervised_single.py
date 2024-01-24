@@ -107,7 +107,9 @@ class BaseExperiment(object):
                 logits = self.model(self.dset['graph'], self.dset['graph'].ndata['feature'])
                 epoch_loss = self.loss(logits[self.dset['train_mask']], labels[self.dset['train_mask']], weight=torch.tensor([1., self.train_config['ce_weight']]))
             else:
+                print('Batch training!')
                 for input_nodes, output_nodes, blocks in self.dset['dataloader']:
+                    print('New block.')
                     blocks = [b.to(torch.device('cuda')) for b in blocks]
                     input_features = blocks[0].srcdata['feature']
                     output_labels = blocks[-1].dstdata['label']
