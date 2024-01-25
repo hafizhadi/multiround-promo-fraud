@@ -23,7 +23,7 @@ model_dict = {
 ### BASE EXPERIMENT CLASS ###
 class BaseExperiment(object):
     ## Helpers
-    def get_best_f1(labels, probs):
+    def get_best_f1(self, labels, probs):
         best_f1, best_thre = 0, 0
         for thres in np.linspace(0.05, 0.95, 19):
             preds = np.zeros_like(labels)
