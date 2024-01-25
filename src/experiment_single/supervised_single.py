@@ -165,7 +165,7 @@ class BaseExperiment(object):
             verPrint(self.verbose, 1, 'Epoch {}, loss: {:.4f}, val mf1: {:.4f}, (best {:.4f})'.format(e, epoch_loss, f1, best_f1))
 
         time_end = time.time()
-        verPrint(self.verbose, 1, 'time cost: ', time_end - time_start, 's')
+        print('time cost: ', time_end - time_start, 's')
         verPrint(self.verbose, 1, 'Test: REC {:.2f} PRE {:.2f} MF1 {:.2f} AUC {:.2f}'.format(final_trec*100,
                                                                             final_tpre*100, final_tmf1*100, final_tauc*100))
         return final_tmf1, final_tauc
