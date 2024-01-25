@@ -143,7 +143,7 @@ class BaseExperiment(object):
                     verPrint(self.verbose, 3, f"GPU Memory Usage: {torch.cuda.memory_reserved() / (1024 ** 3)} GB")
 
             # Evaluate
-            verPrint(self.verbose, 1, 'Evaluate')
+            verPrint(self.verbose, 2, 'Evaluate')
             self.model.eval()
             probs = self.logits.softmax(1)
 
