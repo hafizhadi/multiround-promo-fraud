@@ -36,8 +36,9 @@ class BaseExperiment(object):
 
     ## Class Methods
     def __init__(self, model_config, train_config, graph, verbose=0):
+        model_config['train_mode'] = train_config['train_mode']
+        
         self.verbose=verbose
-
         self.dset = {'graph': graph}
         self.model_config = model_config
         self.train_config = train_config      
@@ -72,8 +73,6 @@ class BaseExperiment(object):
         # Additional inits
         self.train_config['ce_weight'] = (1-labels[self.dset['train_mask']]).sum().item() / labels[self.dset['train_mask']].sum().item()
         if train_config['train_mode'] == 'batch':
-            model_config['train_mode'] = 'batch'
-
             self.dset['sampler'] = dgl.dataloading.MultiLayerFullNeighborSampler(model_config['num_layers'])
             self.dset['dataloader'] = dgl.dataloading.DataLoader(
                 self.dset['graph'], idx_train, self.dset['sampler'],
@@ -128,8 +127,7 @@ class BaseExperiment(object):
                     output_labels = blocks[-1].dstdata['label']
 
                     logits = self.model(blocks, input_features)
-                    print(logits)
-                    self.logits[output_nodes] = logits.cpu()
+                    # self.logits[output_nodes] = logits.cpu()
 
                     epoch_loss = self.loss(logits, output_labels, weight=torch.tensor([1., self.train_config['ce_weight']]).to(torch.device('cuda')))
 
