@@ -12,7 +12,7 @@ class MLP(nn.Module):
         
         # Set verbosity
         self.verbose=verbose       
-        verPrint(self.verbose, 3, 'MLP:__init__ | ', in_feats, h_feats, num_classes, num_layers, dropout_rate, activation, kwargs)
+        verPrint(self.verbose, 3, f'MLP:__init__ | {in_feats} {h_feats} {num_classes} {num_layers} {dropout_rate} {activation} {kwargs}')
 
         # Linears
         self.layers = nn.ModuleList()       
@@ -31,7 +31,7 @@ class MLP(nn.Module):
         self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
 
     def forward(self, h, is_graph=True):
-        verPrint(self.verbose, 3, 'MLP:forward | ', h.shape, is_graph)
+        verPrint(self.verbose, 3, f'MLP:forward | {h.shape} {is_graph}')
         if is_graph:
             h = h.ndata['feature']
         for i, layer in enumerate(self.layers):
@@ -48,7 +48,7 @@ class GCN(nn.Module):
     def __init__(self, in_feats, num_classes, model_config, verbose=0, **kwargs):
         # Set verbosity
         self.verbose=verbose       
-        verPrint(self.verbose, 3, 'GCN:__init__ | ', in_feats, num_classes, model_config)
+        verPrint(self.verbose, 3, f'GCN:__init__ | {in_feats} {num_classes} {model_config}')
         
         super().__init__()
         h_feats = model_config['h_feats']
@@ -74,7 +74,7 @@ class GCN(nn.Module):
         self.mlp = MLP(h_feats, h_feats=mlp_h_feats, num_classes=num_classes, num_layers=mlp_num_layers, dropout_rate=dropout_rate)  
 
     def forward(self, blocks, x):
-        verPrint(self.verbose, 3, 'GCN:forward | ', blocks, x)
+        verPrint(self.verbose, 3, f'GCN:forward | {blocks} {x}')
         h = x
         for i, layer in enumerate(self.layers):
             if i != 0:
