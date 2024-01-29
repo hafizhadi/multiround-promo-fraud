@@ -1,6 +1,5 @@
-from utils import verPrint
-from models.benchmarks_supervised import GCN, GHRN, H2FD, CAREGNN
-
+from utils_func import verPrint, get_best_f1, eval_and_print
+from utils_const import model_dict
 
 import dgl
 import torch
@@ -11,30 +10,8 @@ import torch.nn.functional as F
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, accuracy_score, recall_score, roc_auc_score, precision_score, confusion_matrix
 
-## MODEL DICTIONARY
-model_dict = {
-    # Standard GNNs
-    'GCN': GCN,
-    'GHRN': GHRN,
-    'H2F-DETECTOR': H2FD,
-    'CARE-GNN':CAREGNN
-}
-
 ### BASE EXPERIMENT CLASS ###
 class BaseExperiment(object):
-    ## Helpers
-    def get_best_f1(self, labels, probs):
-        best_f1, best_thre = 0, 0
-        for thres in np.linspace(0.05, 0.95, 19):
-            preds = np.zeros_like(labels)
-            preds[probs[:,1] > thres] = 1
-            mf1 = f1_score(labels, preds, average='macro')
-            if mf1 > best_f1:
-                best_f1 = mf1
-                best_thre = thres
-        return best_f1, best_thre
-
-    ## Class Methods
     def __init__(self, model_config, train_config, graph, verbose=0):
         model_config['train_mode'] = train_config['train_mode']
         
@@ -46,12 +23,15 @@ class BaseExperiment(object):
         features = self.dset['graph'].ndata['feature']
         labels = self.dset['graph'].ndata['label']
         
+        # Initialize Model
         in_dimension = features.shape[1]
         class_num =  labels.unique(return_counts=True)[0].shape[0]
-
-        index = list(range(len(labels)))
+        self.model = model_dict[model_config['model_name']](in_dimension, class_num, model_config, verbose=self.verbose)
+        if train_config['train_mode'] == 'batch':
+            self.model.cuda()
 
         # Train Test Split
+        index = list(range(len(labels)))
         idx_train, idx_rest, y_train, y_rest = train_test_split(
             index, labels[index], stratify=labels[index],
             train_size = train_config['train_ratio'], random_state = train_config['random_state'], shuffle=True
@@ -78,13 +58,7 @@ class BaseExperiment(object):
                 self.dset['graph'], idx_train, self.dset['sampler'],
                 batch_size=train_config['batch_size'], shuffle=True, drop_last=False, num_workers=train_config['num_workers']
             )
-            
-    
-        # Model
-        self.model = model_dict[model_config['model_name']](in_dimension, class_num, model_config, verbose=self.verbose)
-    
-        if train_config['train_mode'] == 'batch':
-            self.model.cuda()
+
 
     # Base train is just when model outputs logits and normal backprop
     def train(self):
@@ -147,7 +121,7 @@ class BaseExperiment(object):
             self.model.eval()
             probs = self.logits.softmax(1)
 
-            f1, thres = self.get_best_f1(labels[self.dset['val_mask']], probs[self.dset['val_mask']])
+            f1, thres = get_best_f1(labels[self.dset['val_mask']], probs[self.dset['val_mask']])
             preds = np.zeros_like(labels)
             preds[probs[:, 1] > thres] = 1
 

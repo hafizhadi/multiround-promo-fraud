@@ -1,0 +1,68 @@
+import torch
+import numpy as np
+
+from numpy import random
+from sklearn.metrics import f1_score
+
+### METHODS ###
+
+## General
+# Print but only if currently above specified verbosity level
+def verPrint(verbose_status, verbose_threshold, msg):
+    if verbose_status >= verbose_threshold:
+        print(msg)
+
+## Training related
+def get_best_f1(labels, probs):
+    best_f1, best_thre = 0, 
+    for thres in np.linspace(0.05, 0.95, 19):
+        preds = np.zeros_like(labels)
+        preds[probs[:,1] > thres] = 1
+        mf1 = f1_score(labels, preds, average='macro')
+        if mf1 > best_f1:
+            best_f1 = mf1
+            best_thre = thres
+    return best_f1, best_thre
+
+def eval_and_print(verbose_level, labels, preds, msg):
+    rec = recall_score(labels, preds)
+    prec = precision_score(labels, preds)
+    f1 = f1_score(labels, preds, average='macro')
+    auc = roc_auc_score(labels, preds[:, 1].detach().numpy())
+
+    verPrint(verbose_level, 1, '{msg}: REC {:.2f} PRE {:.2f} MF1 {:.2f} AUC {:.2f}'.format(rec*100, prec*100, f1*100, auc*100))
+    
+## Graph related
+def random_duplicate(graph, n_instances=1, label=None):
+    
+    if label == None:
+        pool_ids = torch.LongTensor(range(graph.num_nodes()))
+    else:
+        pool_ids = (graph.ndata['label'] == label).nonzero().flatten()
+        
+    old_ids = pool_ids[random.choice(list(range(len(pool_ids))), size=n_instances, replace=False)]
+    new_ids = (torch.Tensor(list(range(len(old_ids)))) + graph.num_nodes()).int()
+    id_dict = dict(zip(old_ids.tolist(), new_ids.tolist()))
+
+    in_src, in_dst, in_ids = graph.in_edges(old_ids, form='all')
+    out_src, out_dst, out_ids = graph.out_edges(old_ids, form='all')
+
+    in_dst = torch.from_numpy(np.fromiter((id_dict[i] for i in in_dst.tolist()), int))
+    out_src = torch.from_numpy(np.fromiter((id_dict[i] for i in out_src.tolist()), int))
+
+    edge_src = torch.cat((in_src, out_src), 0)
+    edge_dst = torch.cat((in_dst, out_dst), 0)
+    edge_ids = torch.cat((in_ids, out_ids), 0)
+
+    new_node_features = { 
+        key: graph.ndata[key][old_ids] for key, _v in graph.node_attr_schemes().items() if key != '_ID'
+    }
+
+    new_edge_features = {
+        key: graph.edata[key][edge_ids] for key, _v in graph.edge_attr_schemes().items() if key != '_ID'
+    }
+
+    new_edge_features['src'] = edge_src
+    new_edge_features['dst'] = edge_dst
+    
+    return new_node_features, new_edge_features
