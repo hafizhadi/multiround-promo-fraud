@@ -67,6 +67,6 @@ def random_duplicate(graph, n_instances=1, label=None):
     new_edge_features['src'] = edge_src
     new_edge_features['dst'] = edge_dst
 
-    print(new_node_features['feature'].shape)
+    print(new_node_features)
     
     return new_node_features, new_edge_features
