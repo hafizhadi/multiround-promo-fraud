@@ -184,11 +184,11 @@ class MultiroundExperiment(object):
 
     # adver generation of new positive instances
     def adversary_round_generate(self):
-        return self.adver.generate(self.graph, num_instances=self.train_config['round_pos_count'])
+        return self.adver.generate(self.dset['graph'], num_instances=self.train_config['round_pos_count'])
     
     # Generate negative instances
     def round_generate_negatives(self):
-        return random_duplicate(self.graph, self.train_config['round_neg_count'])
+        return random_duplicate(self.dset['graph'], self.train_config['round_neg_count'])
     
     # Execute 1 adver round based on the current state of the experiment
     def adver_round(self, round):
@@ -240,7 +240,7 @@ class MultiroundExperiment(object):
         self.rounds[r_idx]['prediction'] = round_preds
 
         # Round evaluation
-        round_mask = (self.graph.ndata['creation_round'] == round).nonzero()
+        round_mask = (self.dset['graph'].ndata['creation_round'] == round).nonzero()
         labels = self.dset['graph'].ndata['label']
         eval_and_print(self.verbose, labels[round_mask], round_preds[round_mask], 'Round')
         eval_and_print(self.verbose, labels, round_preds, 'Overall')
