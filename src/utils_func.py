@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 from numpy import random
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, recall_score, precision_score, roc_auc_score
 
 ### METHODS ###
 
@@ -14,7 +14,7 @@ def verPrint(verbose_status, verbose_threshold, msg):
 
 ## Training related
 def get_best_f1(labels, probs):
-    best_f1, best_thre = 0, 
+    best_f1, best_thre = 0, 0
     for thres in np.linspace(0.05, 0.95, 19):
         preds = np.zeros_like(labels)
         preds[probs[:,1] > thres] = 1
@@ -30,7 +30,7 @@ def eval_and_print(verbose_level, labels, preds, msg):
     f1 = f1_score(labels, preds, average='macro')
     auc = roc_auc_score(labels, preds[:, 1].detach().numpy())
 
-    verPrint(verbose_level, 1, '{msg}: REC {:.2f} PRE {:.2f} MF1 {:.2f} AUC {:.2f}'.format(rec*100, prec*100, f1*100, auc*100))
+    verPrint(verbose_level, 1, f'{msg}: REC {rec*100:.2f} PRE {prec*100:.2f} MF1 {f1*100:.2f} AUC {auc*100:.2f}')
     
 ## Graph related
 def random_duplicate(graph, n_instances=1, label=None):
