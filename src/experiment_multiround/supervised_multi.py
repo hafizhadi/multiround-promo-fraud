@@ -216,10 +216,10 @@ class MultiroundExperiment(object):
             new_neg_edges['src'] = new_neg_edges['src'] + len(new_adv_nodes['label'])
             new_neg_edges['dst'] = new_neg_edges['dst'] + len(new_adv_nodes['label'])
 
-            new_nodes = {key:torch.cat((new_adv_nodes[key], new_neg_nodes[key]), 0) for key in new_adv_nodes.key()}
+            new_nodes = {key:torch.cat((new_adv_nodes[key], new_neg_nodes[key]), 0) for key in list(new_adv_nodes.keys())}
             new_nodes['creation_round'] = torch.full([len(new_nodes['label'])], round)
             
-            new_edges = {key:torch.cat((new_adv_edges[key], new_neg_edges[key]), 0) for key in new_adv_edges.key()}
+            new_edges = {key:torch.cat((new_adv_edges[key], new_neg_edges[key]), 0) for key in list(new_adv_edges.keys())}
 
             # Update graph
             edge_src = new_edges['src']
