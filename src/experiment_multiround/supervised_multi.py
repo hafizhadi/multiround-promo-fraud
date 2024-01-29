@@ -192,16 +192,17 @@ class MultiroundExperiment(object):
     
     # Execute 1 adver round based on the current state of the experiment
     def adver_round(self, round):
+        r_idx = round - 1
 
         # Initialization and check to see if inputted round number is valid (i.e. the previous round has been conducted)
-        if(len(self.rounds) < round - 1):
+        if(len(self.rounds) < r_idx):
             return
     
         # Reset all subsequent round data
 
         # TODO: Torch snapshot to reset model and adver
         self.current_round = round
-        self.rounds = self.rounds[:round-1]
+        self.rounds = self.rounds[:r_idx]
         self.dset['graph'] = dgl.remove_nodes(self.dset['graph'], (self.dset['graph'].ndata['creation_round'] >= round).nonzero().flatten())
 
         self.rounds.append({})
@@ -236,7 +237,7 @@ class MultiroundExperiment(object):
 
         # Model predict
         round_preds, round_tn, round_fp, round_tp, round_fn = self.model_round_predict()
-        self.rounds[round]['prediction'] = round_preds
+        self.rounds[r_idx]['prediction'] = round_preds
 
         # Round evaluation
         round_mask = (self.graph.ndata['creation_round'] == round).nonzero()
