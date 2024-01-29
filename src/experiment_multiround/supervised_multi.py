@@ -210,8 +210,8 @@ class MultiroundExperiment(object):
             # TODO: self.adversary_round_train(round)
 
             # Generate additional data for round
-            new_adv_nodes, new_adv_edges = self.adversary_round_generate(round)
-            new_neg_nodes, new_neg_edges = self.round_generate_negatives(round)
+            new_adv_nodes, new_adv_edges = self.adversary_round_generate()
+            new_neg_nodes, new_neg_edges = self.round_generate_negatives()
 
             new_neg_edges['src'] = new_neg_edges['src'] + len(new_adv_nodes['label'])
             new_neg_edges['dst'] = new_neg_edges['dst'] + len(new_adv_nodes['label'])
