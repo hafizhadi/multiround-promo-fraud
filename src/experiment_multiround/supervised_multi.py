@@ -231,6 +231,8 @@ class MultiroundExperiment(object):
             self.dset['graph'].add_nodes(len(new_nodes), new_nodes)
             print("After", self.dset['graph'].ndata['feature'].shape)
             self.dset['graph'].add_edges(edge_src, edge_dst, None if new_edges == {} else new_edges)
+            print("After edge", self.dset['graph'].ndata['feature'].shape)
+
 
             # TODO: Update node and ground truth masks
 
