@@ -235,7 +235,7 @@ class MultiroundExperiment(object):
             # TODO: Update node and ground truth masks
 
         # Model predict
-        round_preds, round_tn, round_fp, round_tp, round_fn = self.model_round_predict(round)
+        round_preds, round_tn, round_fp, round_tp, round_fn = self.model_round_predict()
         self.rounds[round]['prediction'] = round_preds
 
         # Round evaluation
