@@ -136,11 +136,7 @@ class MultiroundExperiment(object):
             preds = np.zeros_like(labels)
             preds[probs[:, 1] > thres] = 1
 
-            trec = recall_score(labels[self.dset['test_mask']], preds[self.dset['test_mask']])
-            tpre = precision_score(labels[self.dset['test_mask']], preds[self.dset['test_mask']])
-            tmf1 = f1_score(labels[self.dset['test_mask']], preds[self.dset['test_mask']], average='macro')
-            tauc = roc_auc_score(labels[self.dset['test_mask']], probs[self.dset['test_mask']][:, 1].detach().numpy())
-
+            trec, tpre, tmf1, tauc = eval_and_print(0, labels[self.dset['test_mask']], preds[self.dset['test_mask']], probs[self.dset['test_mask']][:, 1], f'Epoch {e}')
             if best_f1 < f1:
                 best_f1 = f1
                 final_trec = trec
@@ -243,8 +239,8 @@ class MultiroundExperiment(object):
         round_mask = (self.dset['graph'].ndata['creation_round'] == round).nonzero()
         labels = self.dset['graph'].ndata['label']
         if len(labels[round_mask]) > 0:
-            eval_and_print(self.verbose, labels[round_mask], round_preds[round_mask], round_probs[round_mask], 'Round')
+            _ = eval_and_print(self.verbose, labels[round_mask], round_preds[round_mask], round_probs[round_mask], 'Round')
         else:
             verPrint(self.verbose, 1, 'No round prediction!')
-            
-        eval_and_print(self.verbose, labels, round_preds, round_probs, 'Overall')
+
+        _ = eval_and_print(self.verbose, labels, round_preds, round_probs, 'Overall')
