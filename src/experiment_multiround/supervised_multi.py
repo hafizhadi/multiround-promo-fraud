@@ -132,7 +132,7 @@ class MultiroundExperiment(object):
             self.model.eval()
             probs = self.logits.softmax(1)
 
-            f1, thres = self.get_best_f1(labels[self.dset['val_mask']], probs[self.dset['val_mask']])
+            f1, thres = get_best_f1(labels[self.dset['val_mask']], probs[self.dset['val_mask']])
             preds = np.zeros_like(labels)
             preds[probs[:, 1] > thres] = 1
 
