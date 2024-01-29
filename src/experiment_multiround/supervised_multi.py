@@ -1,4 +1,4 @@
-from utils_func import verPrint, random_duplicate, eval_and_print
+from utils_func import verPrint, random_duplicate, get_best_f1, eval_and_print
 from utils_const import model_dict, adversarial_dict
 
 import dgl
