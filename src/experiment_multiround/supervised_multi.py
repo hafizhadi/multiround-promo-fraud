@@ -180,11 +180,11 @@ class MultiroundExperiment(object):
 
     # adver generation of new positive instances
     def adversary_round_generate(self):
-        return self.adver.generate(self.dset['graph'], num_instances=self.train_config['round_pos_count'])
+        return self.adver.generate(self.dset['graph'], n_instances=self.train_config['round_pos_count'])
     
     # Generate negative instances
     def round_generate_negatives(self):
-        return random_duplicate(self.dset['graph'], self.train_config['round_neg_count'])
+        return random_duplicate(self.dset['graph'], n_instances=self.train_config['round_neg_count'])
     
     # Execute 1 adver round based on the current state of the experiment
     def adver_round(self, round):
