@@ -172,7 +172,7 @@ class MultiroundExperiment(object):
         tn = ((labels == preds) & (labels == 0)).nonzero().flatten()
         fn = ((labels != preds) & (labels == 1)).nonzero().flatten()
 
-        return preds, probs, tp, fp, tn, fn
+        return preds, probs[:, 1], tp, fp, tn, fn
     
     # adver training using provided data
     def adversary_round_train(self):
