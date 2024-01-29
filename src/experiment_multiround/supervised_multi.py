@@ -165,7 +165,7 @@ class MultiroundExperiment(object):
         
         labels = self.dset['graph'].ndata['label']
         probs = self.model(self.dset['graph'], self.dset['graph'].ndata['feature']).softmax(1)
-        f1, thres = self.get_best_f1(labels[self.dset['val_mask']], probs[self.dset['val_mask']])
+        f1, thres = get_best_f1(labels[self.dset['val_mask']], probs[self.dset['val_mask']])
        
         preds = torch.zeros_like(self.dset['graph'].ndata['label'])
         preds[probs[:, 1] > thres] = 1
