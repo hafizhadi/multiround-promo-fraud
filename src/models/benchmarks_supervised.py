@@ -1,4 +1,4 @@
-from src.utils_func import verPrint
+from utils_func import verPrint
 
 import dgl.nn.pytorch.conv as dglnn
 from torch import nn
