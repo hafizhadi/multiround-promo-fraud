@@ -202,7 +202,7 @@ class MultiroundExperiment(object):
         # TODO: Torch snapshot to reset model and adver
         self.current_round = round
         self.rounds = self.rounds[:round-1]
-        self.dset['graph'] = dgl.remove_nodes(self.dset['graph'], (self.dset['graph'].ndata['creation_round'] >= round).nonzero())
+        self.dset['graph'] = dgl.remove_nodes(self.dset['graph'], (self.dset['graph'].ndata['creation_round'] >= round).nonzero().flatten())
 
         self.rounds.append({})
 
