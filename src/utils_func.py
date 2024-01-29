@@ -24,11 +24,11 @@ def get_best_f1(labels, probs):
             best_thre = thres
     return best_f1, best_thre
 
-def eval_and_print(verbose_level, labels, preds, msg):
+def eval_and_print(verbose_level, labels, preds, probs, msg):
     rec = recall_score(labels, preds)
     prec = precision_score(labels, preds)
     f1 = f1_score(labels, preds, average='macro')
-    auc = roc_auc_score(labels, preds[:, 1].detach().numpy())
+    auc = roc_auc_score(labels, preds)
 
     verPrint(verbose_level, 1, f'{msg}: REC {rec*100:.2f} PRE {prec*100:.2f} MF1 {f1*100:.2f} AUC {auc*100:.2f}')
     

@@ -176,7 +176,7 @@ class MultiroundExperiment(object):
         tn = ((labels == preds) & (labels == 0)).nonzero().flatten()
         fn = ((labels != preds) & (labels == 1)).nonzero().flatten()
 
-        return preds, tp, fp, tn, fn
+        return preds, probs, tp, fp, tn, fn
     
     # adver training using provided data
     def adversary_round_train(self):
@@ -236,11 +236,12 @@ class MultiroundExperiment(object):
             # TODO: Update node and ground truth masks
 
         # Model predict
-        round_preds, round_tn, round_fp, round_tp, round_fn = self.model_round_predict()
+        round_preds, round_probs, round_tn, round_fp, round_tp, round_fn = self.model_round_predict()
         self.rounds[r_idx]['prediction'] = round_preds
 
         # Round evaluation
         round_mask = (self.dset['graph'].ndata['creation_round'] == round).nonzero()
         labels = self.dset['graph'].ndata['label']
-        eval_and_print(self.verbose, labels[round_mask], round_preds[round_mask], 'Round')
-        eval_and_print(self.verbose, labels, round_preds, 'Overall')
+        if len(labels[round_mask]) > 0:
+            eval_and_print(self.verbose, labels[round_mask], round_preds[round_mask], round_probs[round_mask], 'Round')
+        eval_and_print(self.verbose, labels, round_preds, round_probs, 'Overall')
