@@ -1,4 +1,4 @@
-from utils_func import verPrint, get_best_f1, eval_and_print
+from utils_func import verPrint, get_best_f1
 from utils_const import model_dict
 
 import dgl
@@ -8,7 +8,7 @@ import time, psutil, os
 import numpy as np
 import torch.nn.functional as F
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import f1_score, accuracy_score, recall_score, roc_auc_score, precision_score, confusion_matrix
+from sklearn.metrics import f1_score, recall_score, roc_auc_score, precision_score
 
 ### BASE EXPERIMENT CLASS ###
 class BaseExperiment(object):
