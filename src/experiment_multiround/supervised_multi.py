@@ -242,6 +242,6 @@ class MultiroundExperiment(object):
         if len(labels[round_mask]) > 0:
             _ = eval_and_print(self.verbose, labels[round_mask], round_preds[round_mask], round_probs[round_mask], 'Round')
         else:
-            verPrint(self.verbose, 1, 'No round prediction.')
+            verPrint(self.verbose, 1, 'No prediction this round.')
 
         _ = eval_and_print(self.verbose, labels, round_preds, round_probs, 'Overall')
