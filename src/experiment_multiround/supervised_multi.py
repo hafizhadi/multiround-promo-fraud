@@ -190,6 +190,7 @@ class MultiroundExperiment(object):
     
     # Execute 1 adver round based on the current state of the experiment
     def adver_round(self, round):
+        verPrint(self.verbose, 1, "Starting round {round}!\n=========")
         r_idx = round - 1
 
         # Initialization and check to see if inputted round number is valid (i.e. the previous round has been conducted)
