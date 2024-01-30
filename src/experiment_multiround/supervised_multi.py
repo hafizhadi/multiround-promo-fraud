@@ -153,6 +153,8 @@ class MultiroundExperiment(object):
     
     # Round training using additional data on round
     def model_round_train(self):
+        # TODO: resplit train-val-test
+
         return
 
     # Round prediction on round
@@ -161,7 +163,7 @@ class MultiroundExperiment(object):
         
         labels = self.dset['graph'].ndata['label']
         probs = self.model(self.dset['graph'], self.dset['graph'].ndata['feature']).softmax(1)
-        f1, thres = get_best_f1(labels[self.dset['val_mask']], probs[self.dset['val_mask']])
+        f1, thres = get_best_f1(labels, probs)
        
         preds = torch.zeros_like(self.dset['graph'].ndata['label'])
         preds[probs[:, 1] > thres] = 1
@@ -212,23 +214,26 @@ class MultiroundExperiment(object):
             # Generate additional data for round
             new_adv_nodes, new_adv_edges = self.adversary_round_generate()
             new_neg_nodes, new_neg_edges = self.round_generate_negatives()
-
-            new_neg_edges['src'] = new_neg_edges['src'] + len(new_adv_nodes['label'])
-            new_neg_edges['dst'] = new_neg_edges['dst'] + len(new_adv_nodes['label'])
-
+            
+            # Nodes proc
             new_nodes = {key:torch.cat((new_adv_nodes[key], new_neg_nodes[key]), 0) for key in list(new_adv_nodes.keys()) if key != '_ID'}
             new_nodes['creation_round'] = torch.full([len(new_nodes['label'])], round)
             
+            # Edges proc
+            new_neg_edges['src'] = new_neg_edges['src'] + len(new_adv_nodes['label'])
+            new_neg_edges['dst'] = new_neg_edges['dst'] + len(new_adv_nodes['label'])           
             new_edges = {key:torch.cat((new_adv_edges[key], new_neg_edges[key]), 0) for key in list(new_adv_edges.keys())}
-
-            # Update graph
             edge_src = new_edges['src'].long()
             edge_dst = new_edges['dst'].long()
             del new_edges['src'], new_edges['dst']
 
+            # Update graph and related metadata
             self.dset['graph'].add_nodes(len(new_nodes['label']), new_nodes)
             self.dset['graph'].add_edges(edge_src, edge_dst)
 
+            self.dset['train_mask'] = torch.cat([self.dset['train_mask'], torch.zeros_like(new_nodes['label'])], 0)
+            self.dset['val_mask'] = torch.cat([self.dset['val_mask'], torch.zeros_like(new_nodes['label'])], 0)
+            self.dset['test_mask'] = torch.cat([self.dset['test_mask'], torch.zeros_like(new_nodes['label'])], 0)
 
             # TODO: Update node and ground truth masks
 
