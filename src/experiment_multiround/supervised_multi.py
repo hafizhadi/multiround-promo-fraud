@@ -233,9 +233,9 @@ class MultiroundExperiment(object):
             self.dset['graph'].add_nodes(len(new_nodes['label']), new_nodes)
             self.dset['graph'].add_edges(edge_src, edge_dst)
 
-            self.dset['train_mask'] = torch.cat([self.dset['train_mask'], torch.full(len(new_nodes['label']), 0)], 0)
-            self.dset['val_mask'] = torch.cat([self.dset['val_mask'], torch.full(len(new_nodes['label']), 0)], 0)
-            self.dset['test_mask'] = torch.cat([self.dset['test_mask'], torch.full(len(new_nodes['label']), 1)], 0)
+            self.dset['train_mask'] = torch.cat([self.dset['train_mask'], torch.full([len(new_nodes['label'])], 0)], 0)
+            self.dset['val_mask'] = torch.cat([self.dset['val_mask'], torch.full([len(new_nodes['label'])], 0)], 0)
+            self.dset['test_mask'] = torch.cat([self.dset['test_mask'], torch.full([len(new_nodes['label'])], 1)], 0)
 
             # TODO: Update node and ground truth masks
 
