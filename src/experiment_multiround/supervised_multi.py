@@ -240,7 +240,7 @@ class MultiroundExperiment(object):
             # TODO: Update node and ground truth masks
 
         # Round predict and eval
-        self.rounds[r_idx]['preds'], , self.rounds[r_idx]['checks'] = self.model_round_predict()
+        self.rounds[r_idx]['preds'], self.rounds[r_idx]['probs'], self.rounds[r_idx]['checks'] = self.model_round_predict()
         round_mask = (self.dset['graph'].ndata['creation_round'] == round).nonzero()
         labels = self.dset['graph'].ndata['label']
         if len(labels[round_mask]) > 0:
