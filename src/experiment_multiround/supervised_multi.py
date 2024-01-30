@@ -216,7 +216,7 @@ class MultiroundExperiment(object):
             new_neg_edges['src'] = new_neg_edges['src'] + len(new_adv_nodes['label'])
             new_neg_edges['dst'] = new_neg_edges['dst'] + len(new_adv_nodes['label'])
 
-            new_nodes = {key:torch.cat((new_adv_nodes[key], new_neg_nodes[key]), 0) for key in list(new_adv_nodes.keys())}
+            new_nodes = {key:torch.cat((new_adv_nodes[key], new_neg_nodes[key]), 0) for key in list(new_adv_nodes.keys()) if key != '_ID'}
             new_nodes['creation_round'] = torch.full([len(new_nodes['label'])], round)
             
             new_edges = {key:torch.cat((new_adv_edges[key], new_neg_edges[key]), 0) for key in list(new_adv_edges.keys())}
@@ -226,13 +226,8 @@ class MultiroundExperiment(object):
             edge_dst = new_edges['dst']
             del new_edges['src'], new_edges['dst']
 
-            print("Before", self.dset['graph'].ndata['feature'].shape)
-            print(new_nodes)
-            self.dset['graph'].add_nodes(len(new_nodes), new_nodes)
-            print("After", self.dset['graph'].ndata['feature'].shape)
-            print("src, dst", edge_src.shape, edge_dst.shape)
+            self.dset['graph'].add_nodes(len(new_nodes['label']), new_nodes)
             self.dset['graph'].add_edges(edge_src, edge_dst)
-            print("After edge", self.dset['graph'].ndata['feature'].shape)
 
 
             # TODO: Update node and ground truth masks
