@@ -222,8 +222,8 @@ class MultiroundExperiment(object):
             new_edges = {key:torch.cat((new_adv_edges[key], new_neg_edges[key]), 0) for key in list(new_adv_edges.keys())}
 
             # Update graph
-            edge_src = new_edges['src']
-            edge_dst = new_edges['dst']
+            edge_src = new_edges['src'].long()
+            edge_dst = new_edges['dst'].long()
             del new_edges['src'], new_edges['dst']
 
             self.dset['graph'].add_nodes(len(new_nodes['label']), new_nodes)
