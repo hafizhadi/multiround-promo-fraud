@@ -174,10 +174,11 @@ class MultiroundExperiment(object):
         tn = ((labels == preds) & (labels == 0)).nonzero().flatten()
         fn = ((labels != preds) & (labels == 1)).nonzero().flatten()
 
-        return preds, probs[:, 1], tp, fp, tn, fn
+        return preds, probs[:, 1], [tp, fp, tn, fn]
     
     # adver training using provided data
     def adversary_round_train(self):
+        
         return
 
     # adver generation of new positive instances
@@ -234,20 +235,17 @@ class MultiroundExperiment(object):
 
             self.dset['train_mask'] = torch.cat([self.dset['train_mask'], torch.zeros_like(new_nodes['label'])], 0)
             self.dset['val_mask'] = torch.cat([self.dset['val_mask'], torch.zeros_like(new_nodes['label'])], 0)
-            self.dset['test_mask'] = torch.cat([self.dset['test_mask'], torch.zeros_like(new_nodes['label'])], 0)
+            self.dset['test_mask'] = torch.cat([self.dset['test_mask'], torch.zeros_like(new_nodes['label'])], 1)
 
             # TODO: Update node and ground truth masks
 
-        # Model predict
-        round_preds, round_probs, round_tn, round_fp, round_tp, round_fn = self.model_round_predict()
-        self.rounds[r_idx]['prediction'] = round_preds
-
-        # Round evaluation
+        # Round predict and eval
+        self.rounds[r_idx]['preds'], , self.rounds[r_idx]['checks'] = self.model_round_predict()
         round_mask = (self.dset['graph'].ndata['creation_round'] == round).nonzero()
         labels = self.dset['graph'].ndata['label']
         if len(labels[round_mask]) > 0:
-            _ = eval_and_print(self.verbose, labels[round_mask], round_preds[round_mask], round_probs[round_mask], 'Round')
+            _ = eval_and_print(self.verbose, labels[round_mask], self.rounds[r_idx]['preds'][round_mask], self.rounds[r_idx]['probs'][round_mask], 'Round')
         else:
             verPrint(self.verbose, 1, 'No prediction this round.')
 
-        _ = eval_and_print(self.verbose, labels, round_preds, round_probs, 'Overall')
+        _ = eval_and_print(self.verbose, labels, self.rounds[r_idx]['preds'], self.rounds[r_idx]['probs'], 'Overall')
