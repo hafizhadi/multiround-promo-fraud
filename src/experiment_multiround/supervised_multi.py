@@ -124,8 +124,8 @@ class MultiroundExperiment(object):
 
                     # The following code is used to record the memory usage
                     py_process = psutil.Process(os.getpid())
-                    verPrint(self.verbose, 3, f"CPU Memory Usage: {py_process.memory_info().rss / (1024 ** 3)} GB")
-                    verPrint(self.verbose, 3, f"GPU Memory Usage: {torch.cuda.memory_reserved() / (1024 ** 3)} GB")
+                    verPrint(self.verbose, 3, f'CPU Memory Usage: {py_process.memory_info().rss / (1024 ** 3)} GB')
+                    verPrint(self.verbose, 3, f'GPU Memory Usage: {torch.cuda.memory_reserved() / (1024 ** 3)} GB')
 
             # Evaluate
             verPrint(self.verbose, 2, 'Evaluate')
@@ -191,7 +191,7 @@ class MultiroundExperiment(object):
     
     # Execute 1 adver round based on the current state of the experiment
     def adver_round(self, round):
-        verPrint(self.verbose, 1, "Starting round {round}!\n=========")
+        verPrint(self.verbose, 1, f'Starting round {round}!\n=========')
         r_idx = round - 1
 
         # Initialization and check to see if inputted round number is valid (i.e. the previous round has been conducted)
