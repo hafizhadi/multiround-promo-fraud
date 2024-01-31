@@ -181,6 +181,7 @@ class MultiroundExperiment(object):
 
     # adver generation of new positive instances
     def adversary_round_generate(self):
+        print('HERE')
         return self.adver.generate(self.dset['graph'], n_instances=self.train_config['round_pos_count'], return_seed=True)
     
     # Generate negative instances
@@ -210,8 +211,6 @@ class MultiroundExperiment(object):
             # Train model and adversary based on last round info
             # TODO: self.model_round_train(round)
             # TODO: self.adversary_round_train(round)
-
-            print('YES')
 
             # Generate additional data for round
             new_adv_nodes, new_adv_edges, adv_seed = self.adversary_round_generate()
