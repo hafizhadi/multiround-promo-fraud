@@ -18,5 +18,5 @@ class PerturbationAdversary(BaseAdversary):
         super().__init__()
         return
     
-    def generate(self, graph, n_instances=1, is_random=True):
+    def generate(self, graph, n_instances=1, return_seed=False, is_random=True):
         return 0
