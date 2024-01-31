@@ -211,6 +211,8 @@ class MultiroundExperiment(object):
             # TODO: self.model_round_train(round)
             # TODO: self.adversary_round_train(round)
 
+            print('YES')
+
             # Generate additional data for round
             new_adv_nodes, new_adv_edges, adv_seed = self.adversary_round_generate()
             new_neg_nodes, new_neg_edges, neg_seed = self.round_generate_negatives()
