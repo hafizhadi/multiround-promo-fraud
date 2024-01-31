@@ -35,7 +35,7 @@ def eval_and_print(verbose_level, labels, preds, probs, msg):
     return (rec, prec, f1, auc)
     
 ## Graph related
-def random_duplicate(graph, n_instances=1, label=None):
+def random_duplicate(graph, n_instances=1, label=None, return_seed=False):
     
     if label == None:
         pool_ids = torch.LongTensor(range(graph.num_nodes()))
@@ -67,4 +67,7 @@ def random_duplicate(graph, n_instances=1, label=None):
     new_edge_features['src'] = edge_src
     new_edge_features['dst'] = edge_dst
     
-    return new_node_features, new_edge_features
+    if return_seed:
+        return new_node_features, new_edge_features, old_ids
+    else:
+        return new_node_features, new_edge_features

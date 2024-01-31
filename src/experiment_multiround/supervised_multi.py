@@ -113,7 +113,6 @@ class MultiroundExperiment(object):
 
                     logits = self.model(blocks, input_features)
                     self.logits[output_nodes] = logits.cpu()
-
                     epoch_loss = self.loss(logits, output_labels, weight=torch.tensor([1., self.train_config['ce_weight']]).to(torch.device('cuda')))
 
                     # Backward pass
@@ -178,16 +177,15 @@ class MultiroundExperiment(object):
     
     # adver training using provided data
     def adversary_round_train(self):
-        
         return
 
     # adver generation of new positive instances
     def adversary_round_generate(self):
-        return self.adver.generate(self.dset['graph'], n_instances=self.train_config['round_pos_count'])
+        return self.adver.generate(self.dset['graph'], n_instances=self.train_config['round_pos_count'], return_seed=True)
     
     # Generate negative instances
     def round_generate_negatives(self):
-        return random_duplicate(self.dset['graph'], n_instances=self.train_config['round_neg_count'])
+        return random_duplicate(self.dset['graph'], n_instances=self.train_config['round_neg_count'], return_seed=True)
     
     # Execute 1 adver round based on the current state of the experiment
     def adver_round(self, round):
@@ -214,8 +212,8 @@ class MultiroundExperiment(object):
             # TODO: self.adversary_round_train(round)
 
             # Generate additional data for round
-            new_adv_nodes, new_adv_edges = self.adversary_round_generate()
-            new_neg_nodes, new_neg_edges = self.round_generate_negatives()
+            new_adv_nodes, new_adv_edges, adv_seed = self.adversary_round_generate()
+            new_neg_nodes, new_neg_edges, neg_seed = self.round_generate_negatives()
             
             # Nodes proc
             new_nodes = {key:torch.cat((new_adv_nodes[key], new_neg_nodes[key]), 0) for key in list(new_adv_nodes.keys()) if key != '_ID'}
@@ -245,6 +243,10 @@ class MultiroundExperiment(object):
         labels = self.dset['graph'].ndata['label']
         if len(labels[round_mask]) > 0:
             _ = eval_and_print(self.verbose, labels[round_mask], self.rounds[r_idx]['preds'][round_mask], self.rounds[r_idx]['probs'][round_mask], 'Round')
+            _ = eval_and_print(self.verbose, labels[adv_seed], self.rounds[r_idx]['preds'][adv_seed], self.rounds[r_idx]['probs'][adv_seed], 'Round - Positive Seed only')
+            _ = eval_and_print(self.verbose, labels[neg_seed], self.rounds[r_idx]['preds'][neg_seed], self.rounds[r_idx]['probs'][neg_seed], 'Round - Negative Seed only')
+            _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['preds'][[torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['probs'][[torch.cat([adv_seed, neg_seed], 0)], 'Round - Negative Seed only')
+
         else:
             verPrint(self.verbose, 1, 'No prediction this round.')
 
