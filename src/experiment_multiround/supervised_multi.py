@@ -65,9 +65,6 @@ class MultiroundExperiment(object):
         nonindex = torch.ones_like(labels, dtype=bool)
         nonindex[full_pool] = False
 
-        print('index', index)
-        print('label', labels[index])
-
         # Train Test Split
         if (torch.sum(labels[index] == 0) < 2) or (torch.sum(labels[index] == 1) < 2):
             return None
@@ -76,7 +73,7 @@ class MultiroundExperiment(object):
             train_size = self.train_config['train_ratio'], random_state = self.train_config['random_state'], shuffle=True
         )
 
-        if (torch.sum(idx_rest == 0) < 2) or (torch.sum(idx_rest == 1) < 2):
+        if (torch.sum(y_rest == 0) < 2) or (torch.sum(y_rest == 1) < 2):
             return None
         idx_valid, idx_test, y_valid, y_test = train_test_split(
             idx_rest, y_rest, stratify=y_rest,
