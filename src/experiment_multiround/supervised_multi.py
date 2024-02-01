@@ -50,22 +50,27 @@ class MultiroundExperiment(object):
         
         labels = self.dset['graph'].ndata['label']
 
+        self.dset['train_mask'] = torch.zeros([len(labels)]).bool()
+        self.dset['val_mask'] = torch.zeros([len(labels)]).bool()
+        self.dset['test_mask'] = torch.zeros([len(labels)]).bool()
+
         if round > 0:
             initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten() if all_data else torch.tensor([], dtype=torch.long)
             positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:2], 0) for i in (list(range(round)) if all_data else [round-1])], 0)
             full_pool = torch.cat([initial_pool, positive_preds], 0)
         else:
-            full_pool = torch.arange(len(labels))
+            full_pool = torch.arange(len(labels), dtype=torch.long)
             
         index = torch.arange(len(labels), dtype=torch.long)[full_pool]
         nonindex = torch.ones_like(labels, dtype=bool)
         nonindex[full_pool] = False
 
-        # Check if data is enough for train test split
-        if (torch.sum(labels[index] == 0) < 2) or (torch.sum(labels[index] == 1) < 2):
-            return None
+        print('index', index)
+        print('label', labels[index])
 
         # Train Test Split
+        if (torch.sum(labels[index] == 0) < 2) or (torch.sum(labels[index] == 1) < 2):
+            return None
         idx_train, idx_rest, y_train, y_rest = train_test_split(
             index, labels[index], stratify=labels[index],
             train_size = self.train_config['train_ratio'], random_state = self.train_config['random_state'], shuffle=True
@@ -73,15 +78,10 @@ class MultiroundExperiment(object):
 
         if (torch.sum(idx_rest == 0) < 2) or (torch.sum(idx_rest == 1) < 2):
             return None
-
         idx_valid, idx_test, y_valid, y_test = train_test_split(
             idx_rest, y_rest, stratify=y_rest,
             test_size = self.train_config['test_ratio_from_rest'], random_state = self.train_config['random_state'], shuffle=True
         )
-
-        self.dset['train_mask'] = torch.zeros([len(labels)]).bool()
-        self.dset['val_mask'] = torch.zeros([len(labels)]).bool()
-        self.dset['test_mask'] = torch.zeros([len(labels)]).bool()
 
         self.dset['train_mask'][idx_train] = 1
         self.dset['val_mask'][idx_valid] = 1
