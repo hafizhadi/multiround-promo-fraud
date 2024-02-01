@@ -91,10 +91,7 @@ class MultiroundExperiment(object):
 
 
     # Initial training for the first round
-    def model_train(self, reset_model=False):
-        if reset_model:
-            self.init_model()
-
+    def model_train(self):
         # Inits
         best_f1, final_tf1, final_trec, final_tpre, final_tmf1, final_tauc = 0., 0., 0., 0., 0., 0.
         self.optimizer = self.train_config['optimizer'](self.model.parameters(), lr=self.train_config['learning_rate'])
@@ -174,6 +171,7 @@ class MultiroundExperiment(object):
     
     # Round training using additional data on round
     def model_round_train(self, round):
+        # Prepare training data for the round
         split_res = self.split_train_test(round, all_data=self.train_config['round_all_data'])
         if split_res == None:
             verPrint(self.verbose, 1, 'No additional dataset to train with!')
@@ -181,14 +179,20 @@ class MultiroundExperiment(object):
 
         (idx_train, idx_valid, idx_test, y_train, y_valid, y_test) = split_res
 
-        # Sampler for Batch training
+        # Initialize sampler in catch of batch training
         if self.train_config['train_mode'] == 'batch':
             self.dset['sampler'] = dgl.dataloading.MultiLayerFullNeighborSampler(self.model_config['num_layers'])
             self.dset['dataloader'] = dgl.dataloading.DataLoader(
                 self.dset['graph'], idx_train, self.dset['sampler'],
                 batch_size=self.train_config['batch_size'], shuffle=True, drop_last=False, num_workers=self.train_config['num_workers']
         )
+            
+        # Reset model if needed
+        # TODO: If not return to model snapshot on previous step?
+        if self.train_config['round_reset_model']:
+            self.init_model()
 
+        # Train
         self.model_train(reset_model=self.train_config['round_reset_model'])
 
     # Round prediction on round
@@ -231,8 +235,6 @@ class MultiroundExperiment(object):
             return
     
         # Reset all subsequent round data
-
-        # TODO: Torch snapshot to reset model and adver
         self.current_round = round
         self.rounds = self.rounds[:round]
         self.rounds.append({})
