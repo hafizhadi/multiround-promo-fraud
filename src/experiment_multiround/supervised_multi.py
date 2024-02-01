@@ -26,23 +26,16 @@ class MultiroundExperiment(object):
         features = self.dset['graph'].ndata['feature']
         labels = self.dset['graph'].ndata['label']
 
-        # Initialize model
-        in_dimension = features.shape[1]
-        class_num =  labels.unique(return_counts=True)[0].shape[0]
-        self.model = model_dict[model_config['model_name']](in_dimension, class_num, model_config, verbose=self.verbose)
-        if train_config['train_mode'] == 'batch':
-            self.model.cuda()
-
-        # Initialize adver
-        self.adver = adversarial_dict[adver_config['adver_name']]()
+        self.init_model()
+        self.init_adversarial()
 
         # Train Test Split
-        self.split_train_test(0)
+        idx_train, idx_valid, idx_test, y_train, y_valid, y_test = self.split_train_test(0)
 
         # Initialize round information
         self.current_round = 0
         self.rounds = []
-        self.dset['graph'].ndata['creation_round'] = torch.full([len(labels)], 0)
+        self.dset['graph'].ndata['creation_round'] = torch.full([len(labels)], 0, dtype=torch.long)
 
         # Sampler for Batch training
         if train_config['train_mode'] == 'batch':
@@ -52,14 +45,26 @@ class MultiroundExperiment(object):
                 batch_size=train_config['batch_size'], shuffle=True, drop_last=False, num_workers=train_config['num_workers']
             )
     
+    # Initialize model
+    def init_model(self):
+        in_dimension = self.dset['graph'].ndata['feature'].shape[1]
+        class_num =  self.dset['graph'].ndata['label'].unique(return_counts=True)[0].shape[0]
+        self.model = model_dict[self.model_config['model_name']](in_dimension, class_num, self.model_config, verbose=self.verbose)
+        if self.train_config['train_mode'] == 'batch':
+            self.model.cuda()
+    
+    # Initialize adversarial
+    def init_adversarial(self):
+        self.adver = adversarial_dict[self.adver_config['adver_name']]()
+
     # Split train test
-    def split_train_test(self, round):
+    def split_train_test(self, round, all_data=True):
         
         labels = self.dset['graph'].ndata['label']
 
         if round > 1:
-            initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten()
-            positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:2], 0) for i in list(range(round-1))], 0)
+            initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten() if all_data else torch.Tensor([], dtype=torch.long)
+            positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:2], 0) for i in (list(range(round-1)) if all_data else [round-2])], 0)
             full_pool = torch.cat([initial_pool, positive_preds], 0)
             
             index = torch.arange(len(labels), dtype=torch.long)[full_pool]
@@ -90,9 +95,14 @@ class MultiroundExperiment(object):
 
         self.train_config['ce_weight'] = (1-labels[self.dset['train_mask']]).sum().item() / labels[self.dset['train_mask']].sum().item()
 
+        return idx_train, idx_valid, idx_test, y_train, y_valid, y_test
+
 
     # Initial training for the first round
-    def model_train(self):
+    def model_train(self, reset_model=False):
+        if reset_model:
+            self.init_model()
+
         # Inits
         best_f1, final_tf1, final_trec, final_tpre, final_tmf1, final_tauc = 0., 0., 0., 0., 0., 0.
         self.optimizer = self.train_config['optimizer'](self.model.parameters(), lr=self.train_config['learning_rate'])
@@ -172,10 +182,8 @@ class MultiroundExperiment(object):
     
     # Round training using additional data on round
     def model_round_train(self, round):
-        self.split_train_test(round)
-        self.model_train()
-
-        return
+        self.split_train_test(round, all_data=self.train_config['round_all_data'])
+        self.model_train(reset_model=self.train_config['round_reset_model'])
 
     # Round prediction on round
     def model_round_predict(self):
@@ -265,11 +273,9 @@ class MultiroundExperiment(object):
         labels = self.dset['graph'].ndata['label']
         if len(labels[round_mask]) > 0:
             _ = eval_and_print(self.verbose, labels[round_mask], self.rounds[r_idx]['preds'][round_mask], self.rounds[r_idx]['probs'][round_mask], 'Round')
-            _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Round - All Seed only')
-            
-            _ = eval_and_print(self.verbose, labels[adv_seed], self.rounds[r_idx]['preds'][adv_seed], self.rounds[r_idx]['probs'][adv_seed], 'Round - Positive Seed only')
-            _ = eval_and_print(self.verbose, labels[neg_seed], self.rounds[r_idx]['preds'][neg_seed], self.rounds[r_idx]['probs'][neg_seed], 'Round - Negative Seed only')
-
+            _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Round - Seeds')
+            if r_idx > 0:
+                _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx-1]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Prev round - Seeds')
         else:
             verPrint(self.verbose, 1, 'No prediction this round.')
 
