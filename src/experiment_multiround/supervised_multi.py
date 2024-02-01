@@ -87,7 +87,7 @@ class MultiroundExperiment(object):
 
         self.train_config['ce_weight'] = (1-labels[self.dset['train_mask']]).sum().item() / labels[self.dset['train_mask']].sum().item()
 
-        return (idx_train, idx_valid, idx_test, y_train, y_valid, y_test
+        return idx_train, idx_valid, idx_test, y_train, y_valid, y_test
 
 
     # Initial training for the first round
