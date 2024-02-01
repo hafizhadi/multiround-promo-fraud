@@ -219,27 +219,26 @@ class MultiroundExperiment(object):
     # Execute 1 adver round based on the current state of the experiment
     def adver_round(self, round):
         verPrint(self.verbose, 1, f'Starting round {round}!\n=========')
-        r_idx = round - 1
 
         # Initialization and check to see if inputted round number is valid (i.e. the previous round has been conducted)
-        if(len(self.rounds) < r_idx):
+        if(len(self.rounds) < round):
             return
     
         # Reset all subsequent round data
 
         # TODO: Torch snapshot to reset model and adver
         self.current_round = round
-        self.rounds = self.rounds[:r_idx]
-        self.dset['graph'] = dgl.remove_nodes(self.dset['graph'], (self.dset['graph'].ndata['creation_round'] >= round).nonzero().flatten())
+        self.rounds = self.rounds[:round]
+        self.dset['graph'] = dgl.remove_nodes(self.dset['graph'], (self.dset['graph'].ndata['creation_round'] >= round-1).nonzero().flatten())
 
         self.rounds.append({})
 
-        # ROUND
-        if round > 1:
+        
+        
+        # Generate additional adversarial data for round
+        if round > 0:
             # Train model and adversary based on last round info
             # TODO: self.adversary_round_train(round)
-            
-            self.model_round_train(round)
 
             # Generate additional data for round
             new_adv_nodes, new_adv_edges, adv_seed = self.adversary_round_generate()
@@ -267,16 +266,16 @@ class MultiroundExperiment(object):
 
             # TODO: Update node and ground truth masks
 
-        # Round predict and eval
-        self.rounds[r_idx]['preds'], self.rounds[r_idx]['probs'], self.rounds[r_idx]['checks'] = self.model_round_predict()
+        self.model_round_train(round)
+        self.rounds[round]['preds'], self.rounds[round]['probs'], self.rounds[round]['checks'] = self.model_round_predict()
         round_mask = (self.dset['graph'].ndata['creation_round'] == round).nonzero()
         labels = self.dset['graph'].ndata['label']
         if len(labels[round_mask]) > 0:
-            _ = eval_and_print(self.verbose, labels[round_mask], self.rounds[r_idx]['preds'][round_mask], self.rounds[r_idx]['probs'][round_mask], 'Round')
-            _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Round - Seeds')
+            _ = eval_and_print(self.verbose, labels[round_mask], self.rounds[round]['preds'][round_mask], self.rounds[round]['probs'][round_mask], 'Round')
+            _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Round - Seeds')
             if r_idx > 0:
-                _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx-1]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Prev round - Seeds')
+                _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round-1]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Prev round - Seeds')
         else:
             verPrint(self.verbose, 1, 'No prediction this round.')
 
-        _ = eval_and_print(self.verbose, labels, self.rounds[r_idx]['preds'], self.rounds[r_idx]['probs'], 'Overall')
+        _ = eval_and_print(self.verbose, labels, self.rounds[round]['preds'], self.rounds[round]['probs'], 'Overall')
