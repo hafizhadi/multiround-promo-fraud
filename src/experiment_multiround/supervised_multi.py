@@ -181,7 +181,6 @@ class MultiroundExperiment(object):
 
     # adver generation of new positive instances
     def adversary_round_generate(self):
-        print('HERE')
         return self.adver.generate(self.dset['graph'], n_instances=self.train_config['round_pos_count'], return_seed=True)
     
     # Generate negative instances
@@ -246,7 +245,7 @@ class MultiroundExperiment(object):
             _ = eval_and_print(self.verbose, labels[round_mask], self.rounds[r_idx]['preds'][round_mask], self.rounds[r_idx]['probs'][round_mask], 'Round')
             _ = eval_and_print(self.verbose, labels[adv_seed], self.rounds[r_idx]['preds'][adv_seed], self.rounds[r_idx]['probs'][adv_seed], 'Round - Positive Seed only')
             _ = eval_and_print(self.verbose, labels[neg_seed], self.rounds[r_idx]['preds'][neg_seed], self.rounds[r_idx]['probs'][neg_seed], 'Round - Negative Seed only')
-            _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Round - Negative Seed only')
+            _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Round - All Seed only')
 
         else:
             verPrint(self.verbose, 1, 'No prediction this round.')

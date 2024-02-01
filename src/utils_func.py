@@ -28,7 +28,6 @@ def eval_and_print(verbose_level, labels, preds, probs, msg):
     rec = recall_score(labels, preds)
     prec = precision_score(labels, preds)
     f1 = f1_score(labels, preds, average='macro')
-    print('unique', torch.unique(labels).shape[0])
     auc = roc_auc_score(labels, probs.detach().numpy()) if torch.unique(labels).shape[0] > 1 else -1
 
     verPrint(verbose_level, 1, f'{msg}: REC {rec*100:.2f} PRE {prec*100:.2f} MF1 {f1*100:.2f} AUC {auc*100:.2f}')
