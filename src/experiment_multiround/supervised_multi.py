@@ -62,7 +62,7 @@ class MultiroundExperiment(object):
         
         labels = self.dset['graph'].ndata['label']
 
-        if round > 1:
+        if round > 0:
             initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten() if all_data else torch.Tensor([], dtype=torch.long)
             positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:2], 0) for i in (list(range(round-1)) if all_data else [round-2])], 0)
             full_pool = torch.cat([initial_pool, positive_preds], 0)
@@ -71,7 +71,7 @@ class MultiroundExperiment(object):
             nonindex = torch.ones_like(labels, dtype=bool)
             nonindex[full_pool] = False
         else:
-            index = torch.arange(len(labels)-1, dtype=torch.long)
+            index = torch.arange(len(labels), dtype=torch.long)
             nonindex = []
 
         # Train Test Split
