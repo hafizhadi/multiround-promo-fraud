@@ -62,11 +62,11 @@ class MultiroundExperiment(object):
             positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:2], 0) for i in list(range(round-1))], 0)
             full_pool = torch.cat([initial_pool, positive_preds], 0)
             
-            index = torch.range(0, len(labels)-1).long()[full_pool]
+            index = torch.arange(len(labels), dtype=torch.long)[full_pool]
             nonindex = torch.ones_like(labels, dtype=bool)
             nonindex[full_pool] = False
         else:
-            index = torch.range(0, len(labels)-1).long()
+            index = torch.arange(len(labels)-1, dtype=torch.long)
             nonindex = []
 
         # Train Test Split
