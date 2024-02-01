@@ -55,6 +55,9 @@ class MultiroundExperiment(object):
             initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten() if all_data else torch.Tensor([])
             positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:2], 0) for i in (list(range(round)) if all_data else [round-1])], 0)
             full_pool = torch.cat([initial_pool, positive_preds], 0)
+
+            if full_pool.shape[0] == 0:
+                return None
             
             index = torch.arange(len(labels), dtype=torch.long)[full_pool]
             nonindex = torch.ones_like(labels, dtype=bool)
@@ -84,7 +87,7 @@ class MultiroundExperiment(object):
 
         self.train_config['ce_weight'] = (1-labels[self.dset['train_mask']]).sum().item() / labels[self.dset['train_mask']].sum().item()
 
-        return idx_train, idx_valid, idx_test, y_train, y_valid, y_test
+        return (idx_train, idx_valid, idx_test, y_train, y_valid, y_test
 
 
     # Initial training for the first round
@@ -171,7 +174,12 @@ class MultiroundExperiment(object):
     
     # Round training using additional data on round
     def model_round_train(self, round):
-        idx_train, idx_valid, idx_test, y_train, y_valid, y_test = self.split_train_test(round, all_data=self.train_config['round_all_data'])
+        split_res = self.split_train_test(round, all_data=self.train_config['round_all_data'])
+        if split_res = None:
+            verPrint(self.verbose, 1, 'No additional dataset to train with!')
+            return
+
+        (idx_train, idx_valid, idx_test, y_train, y_valid, y_test) = split_res
 
         # Sampler for Batch training
         if self.train_config['train_mode'] == 'batch':
