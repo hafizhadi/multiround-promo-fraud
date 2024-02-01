@@ -43,7 +43,7 @@ def random_duplicate(graph, n_instances=1, label=None, return_seed=False):
         pool_ids = (graph.ndata['label'] == label).nonzero().flatten()
         
     old_ids = pool_ids[random.choice(list(range(len(pool_ids))), size=n_instances, replace=False)]
-    new_ids = (torch.Tensor(list(range(len(old_ids)))) + graph.num_nodes()).int()
+    new_ids = (torch.tensor(list(range(len(old_ids)))) + graph.num_nodes()).int()
     id_dict = dict(zip(old_ids.tolist(), new_ids.tolist()))
 
     in_src, in_dst, in_ids = graph.in_edges(old_ids, form='all')

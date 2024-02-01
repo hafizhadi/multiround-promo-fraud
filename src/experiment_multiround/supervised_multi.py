@@ -52,19 +52,19 @@ class MultiroundExperiment(object):
         labels = self.dset['graph'].ndata['label']
 
         if round > 0:
-            initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten() if all_data else torch.Tensor([])
+            initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten() if all_data else torch.tensor([], dtype=torch.long)
             positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:2], 0) for i in (list(range(round)) if all_data else [round-1])], 0)
-            full_pool = torch.cat([initial_pool, positive_preds], 0).long()
-
-            if full_pool.shape[0] == 0:
-                return None
-            
-            index = torch.arange(len(labels), dtype=torch.long)[full_pool]
-            nonindex = torch.ones_like(labels, dtype=bool)
-            nonindex[full_pool] = False
+            full_pool = torch.cat([initial_pool, positive_preds], 0)
         else:
-            index = torch.arange(len(labels), dtype=torch.long)
-            nonindex = []
+            full_pool = torch.arange(len(labels))
+            
+        index = torch.arange(len(labels), dtype=torch.long)[full_pool]
+        nonindex = torch.ones_like(labels, dtype=bool)
+        nonindex[full_pool] = False
+
+        # Check if data is enough for train test split
+        if (torch.sum(labels[index] == 0) < 2) or (torch.sum(labels[index] == 1) < 2):
+            return None
 
         # Train Test Split
         idx_train, idx_rest, y_train, y_rest = train_test_split(
