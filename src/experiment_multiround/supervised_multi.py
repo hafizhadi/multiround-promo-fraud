@@ -166,8 +166,8 @@ class MultiroundExperiment(object):
 
         time_end = time.time()
         verPrint(self.verbose, 2, f'time cost: {str(time_end - time_start)} s')
-        verPrint(self.verbose, 1, 'Test: REC {:.2f} PRE {:.2f} MF1 {:.2f} AUC {:.2f}'.format(final_trec*100,
-                                                                            final_tpre*100, final_tmf1*100, final_tauc*100))
+        verPrint(self.verbose, 1, 'Test: REC {:.2f} PRE {:.2f} MF1 {:.2f} AUC {:.2f}'.format(final_trec*100, final_tpre*100, final_tmf1*100, final_tauc*100))
+        verPrint(self.verbose, 1, 'Ending training!\n=========')
         return final_tmf1, final_tauc
     
     # Round training using additional data on round
