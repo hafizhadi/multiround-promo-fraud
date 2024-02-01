@@ -175,7 +175,7 @@ class MultiroundExperiment(object):
     # Round training using additional data on round
     def model_round_train(self, round):
         split_res = self.split_train_test(round, all_data=self.train_config['round_all_data'])
-        if split_res = None:
+        if split_res == None:
             verPrint(self.verbose, 1, 'No additional dataset to train with!')
             return
 
