@@ -70,6 +70,10 @@ class MultiroundExperiment(object):
             index, labels[index], stratify=labels[index],
             train_size = self.train_config['train_ratio'], random_state = self.train_config['random_state'], shuffle=True
         )
+
+        if (torch.sum(idx_test == 0) < 2) or (torch.sum(idx_test == 1) < 2):
+            return None
+
         idx_valid, idx_test, y_valid, y_test = train_test_split(
             idx_rest, y_rest, stratify=y_rest,
             test_size = self.train_config['test_ratio_from_rest'], random_state = self.train_config['random_state'], shuffle=True
