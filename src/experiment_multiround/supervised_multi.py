@@ -52,7 +52,7 @@ class MultiroundExperiment(object):
         labels = self.dset['graph'].ndata['label']
 
         if round > 0:
-            initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten() if all_data else torch.Tensor([], dtype=torch.long)
+            initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten() if all_data else torch.Tensor([])
             positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:2], 0) for i in (list(range(round)) if all_data else [round-1])], 0)
             full_pool = torch.cat([initial_pool, positive_preds], 0)
             
