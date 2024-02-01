@@ -29,21 +29,10 @@ class MultiroundExperiment(object):
         self.init_model()
         self.init_adversarial()
 
-        # Train Test Split
-        idx_train, idx_valid, idx_test, y_train, y_valid, y_test = self.split_train_test(0)
-
         # Initialize round information
         self.current_round = 0
         self.rounds = []
         self.dset['graph'].ndata['creation_round'] = torch.full([len(labels)], 0, dtype=torch.long)
-
-        # Sampler for Batch training
-        if train_config['train_mode'] == 'batch':
-            self.dset['sampler'] = dgl.dataloading.MultiLayerFullNeighborSampler(model_config['num_layers'])
-            self.dset['dataloader'] = dgl.dataloading.DataLoader(
-                self.dset['graph'], idx_train, self.dset['sampler'],
-                batch_size=train_config['batch_size'], shuffle=True, drop_last=False, num_workers=train_config['num_workers']
-            )
     
     # Initialize model
     def init_model(self):
@@ -182,7 +171,16 @@ class MultiroundExperiment(object):
     
     # Round training using additional data on round
     def model_round_train(self, round):
-        self.split_train_test(round, all_data=self.train_config['round_all_data'])
+        idx_train, idx_valid, idx_test, y_train, y_valid, y_test = self.split_train_test(round, all_data=self.train_config['round_all_data'])
+
+        # Sampler for Batch training
+        if self.train_config['train_mode'] == 'batch':
+            self.dset['sampler'] = dgl.dataloading.MultiLayerFullNeighborSampler(self.model_config['num_layers'])
+            self.dset['dataloader'] = dgl.dataloading.DataLoader(
+                self.dset['graph'], idx_train, self.dset['sampler'],
+                batch_size=self.train_config['batch_size'], shuffle=True, drop_last=False, num_workers=self.train_config['num_workers']
+        )
+
         self.model_train(reset_model=self.train_config['round_reset_model'])
 
     # Round prediction on round
@@ -229,14 +227,12 @@ class MultiroundExperiment(object):
         # TODO: Torch snapshot to reset model and adver
         self.current_round = round
         self.rounds = self.rounds[:round]
-        self.dset['graph'] = dgl.remove_nodes(self.dset['graph'], (self.dset['graph'].ndata['creation_round'] >= round-1).nonzero().flatten())
-
         self.rounds.append({})
-
-        
+        self.dset['graph'] = dgl.remove_nodes(self.dset['graph'], (self.dset['graph'].ndata['creation_round'] >= max([round, 1])).nonzero().flatten())
         
         # Generate additional adversarial data for round
         if round > 0:
+            
             # Train model and adversary based on last round info
             # TODO: self.adversary_round_train(round)
 
