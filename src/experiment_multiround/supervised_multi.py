@@ -37,25 +37,7 @@ class MultiroundExperiment(object):
         self.adver = adversarial_dict[adver_config['adver_name']]()
 
         # Train Test Split
-        index = list(range(len(labels)))
-        idx_train, idx_rest, y_train, y_rest = train_test_split(
-            index, labels[index], stratify=labels[index],
-            train_size = train_config['train_ratio'], random_state = train_config['random_state'], shuffle=True
-        )
-        idx_valid, idx_test, y_valid, y_test = train_test_split(
-            idx_rest, y_rest, stratify=y_rest,
-            test_size = train_config['test_ratio_from_rest'], random_state = train_config['random_state'], shuffle=True
-        )
-
-        self.dset['train_mask'] = torch.zeros([len(labels)]).bool()
-        self.dset['val_mask'] = torch.zeros([len(labels)]).bool()
-        self.dset['test_mask'] = torch.zeros([len(labels)]).bool()
-
-        self.dset['train_mask'][idx_train] = 1
-        self.dset['val_mask'][idx_valid] = 1
-        self.dset['test_mask'][idx_test] = 1
-
-        self.train_config['ce_weight'] = (1-labels[self.dset['train_mask']]).sum().item() / labels[self.dset['train_mask']].sum().item()
+        self.split_train_test(0)
 
         # Initialize round information
         self.current_round = 0
@@ -69,10 +51,48 @@ class MultiroundExperiment(object):
                 self.dset['graph'], idx_train, self.dset['sampler'],
                 batch_size=train_config['batch_size'], shuffle=True, drop_last=False, num_workers=train_config['num_workers']
             )
+    
+    # Split train test
+    def split_train_test(self, round):
+        
+        labels = self.dset['graph'].ndata['label']
+
+        if round > 1:
+            initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten()
+            positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:2], 0) for i in list(range(round-1))], 0)
+            full_pool = torch.cat([initial_pool, positive_preds], 0)
             
+            index = torch.range(0, len(labels)-1)[full_pool]
+            nonindex = torch.ones_like(labels, dtype=bool)
+            nonindex[full_pool] = False
+        else:
+            index = torch.range(0, len(labels)-1)
+            nonindex = []
+
+        # Train Test Split
+        idx_train, idx_rest, y_train, y_rest = train_test_split(
+            index, labels[index], stratify=labels[index],
+            train_size = self.train_config['train_ratio'], random_state = self.train_config['random_state'], shuffle=True
+        )
+        idx_valid, idx_test, y_valid, y_test = train_test_split(
+            idx_rest, y_rest, stratify=y_rest,
+            test_size = self.train_config['test_ratio_from_rest'], random_state = self.train_config['random_state'], shuffle=True
+        )
+
+        self.dset['train_mask'] = torch.zeros([len(labels)]).bool()
+        self.dset['val_mask'] = torch.zeros([len(labels)]).bool()
+        self.dset['test_mask'] = torch.zeros([len(labels)]).bool()
+
+        self.dset['train_mask'][idx_train] = 1
+        self.dset['val_mask'][idx_valid] = 1
+        self.dset['test_mask'][idx_test] = 1
+        self.dset['test_mask'][nonindex] = 1
+
+        self.train_config['ce_weight'] = (1-labels[self.dset['train_mask']]).sum().item() / labels[self.dset['train_mask']].sum().item()
+
 
     # Initial training for the first round
-    def model_initial_train(self):
+    def model_train(self):
         # Inits
         best_f1, final_tf1, final_trec, final_tpre, final_tmf1, final_tauc = 0., 0., 0., 0., 0., 0.
         self.optimizer = self.train_config['optimizer'](self.model.parameters(), lr=self.train_config['learning_rate'])
@@ -151,8 +171,9 @@ class MultiroundExperiment(object):
         return final_tmf1, final_tauc
     
     # Round training using additional data on round
-    def model_round_train(self):
-        # TODO: resplit train-val-test
+    def model_round_train(self, round):
+        self.split_train_test(round)
+        self.model_train()
 
         return
 
@@ -208,8 +229,9 @@ class MultiroundExperiment(object):
         # ROUND
         if round > 1:
             # Train model and adversary based on last round info
-            # TODO: self.model_round_train(round)
             # TODO: self.adversary_round_train(round)
+            
+            self.model_round_train(round)
 
             # Generate additional data for round
             new_adv_nodes, new_adv_edges, adv_seed = self.adversary_round_generate()
@@ -243,9 +265,10 @@ class MultiroundExperiment(object):
         labels = self.dset['graph'].ndata['label']
         if len(labels[round_mask]) > 0:
             _ = eval_and_print(self.verbose, labels[round_mask], self.rounds[r_idx]['preds'][round_mask], self.rounds[r_idx]['probs'][round_mask], 'Round')
+            _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Round - All Seed only')
+            
             _ = eval_and_print(self.verbose, labels[adv_seed], self.rounds[r_idx]['preds'][adv_seed], self.rounds[r_idx]['probs'][adv_seed], 'Round - Positive Seed only')
             _ = eval_and_print(self.verbose, labels[neg_seed], self.rounds[r_idx]['preds'][neg_seed], self.rounds[r_idx]['probs'][neg_seed], 'Round - Negative Seed only')
-            _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[r_idx]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Round - All Seed only')
 
         else:
             verPrint(self.verbose, 1, 'No prediction this round.')
