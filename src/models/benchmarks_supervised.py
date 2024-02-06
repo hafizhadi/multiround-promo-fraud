@@ -46,28 +46,6 @@ class MLP(nn.Module):
             if i != len(self.layers)-1:
                 h = self.act(h)
         return h
-    
-class PolyConv(nn.Module):
-    def __init__(self, theta):
-        super(PolyConv, self).__init__()
-        self._theta = theta
-        self._k = len(self._theta)
-
-    def forward(self, graph, feat):
-        def unnLaplacian(feat, D_invsqrt, graph):
-            """ Operation Feat * D^-1/2 A D^-1/2 """
-            graph.ndata['h'] = feat * D_invsqrt
-            graph.update_all(fn.copy_u('h', 'm'), fn.sum('m', 'h'))
-            return feat - graph.ndata.pop('h') * D_invsqrt
-
-        with graph.local_scope():
-            D_invsqrt = torch.pow(graph.in_degrees().float().clamp(
-                min=1), -0.5).unsqueeze(-1).to(feat.device)
-            h = self._theta[0]*feat
-            for k in range(1, self._k):
-                feat = unnLaplacian(feat, D_invsqrt, graph)
-                h += self._theta[k]*feat
-        return h
 
 ### SIMPLE NN BENCHMARKS ###
 ## GCN
@@ -109,7 +87,7 @@ class GCN(nn.Module):
             h = layer(blocks if self.train_mode != 'batch' else blocks[i], h)        
         h = self.mlp(h, False)
 
-        return h
+        return h, None # No loss returned
 
 ## GCN V2
 ## GraphSAGE
@@ -117,7 +95,30 @@ class GCN(nn.Module):
 ## GAT
 
 ### SPECTRAL
-## BWGNN
+## BWGNN - Polyconv Module
+class PolyConv(nn.Module):
+    def __init__(self, theta):
+        super(PolyConv, self).__init__()
+        self._theta = theta
+        self._k = len(self._theta)
+
+    def forward(self, graph, feat):
+        def unnLaplacian(feat, D_invsqrt, graph):
+            """ Operation Feat * D^-1/2 A D^-1/2 """
+            graph.ndata['h'] = feat * D_invsqrt
+            graph.update_all(fn.copy_u('h', 'm'), fn.sum('m', 'h'))
+            return feat - graph.ndata.pop('h') * D_invsqrt
+
+        with graph.local_scope():
+            D_invsqrt = torch.pow(graph.in_degrees().float().clamp(
+                min=1), -0.5).unsqueeze(-1).to(feat.device)
+            h = self._theta[0]*feat
+            for k in range(1, self._k):
+                feat = unnLaplacian(feat, D_invsqrt, graph)
+                h += self._theta[k]*feat
+        return h
+    
+## BWGNN - Main Model
 class BWGNN(nn.Module):
     def __init__(self, in_feats, num_classes, model_config, verbose=0, **kwargs):
         # Set verbosity
@@ -131,15 +132,21 @@ class BWGNN(nn.Module):
         dropout_rate = model_config['dropout_rate']
         act_name = model_config['act_name']
 
+        # Misc modules
+        self.act = getattr(nn, act_name)()
+        self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
+        
+        # Linear and MLP
+        self.linear = nn.Linear(in_feats, h_feats)
+        self.linear2 = nn.Linear(h_feats, h_feats)
+        self.mlp = MLP(h_feats*len(self.conv), h_feats, num_classes, mlp_num_layers, dropout_rate)
+
+        # BW Filters
         self.thetas = self.calculate_theta(d=num_layers)
         self.conv = []
         for i in range(len(self.thetas)):
             self.conv.append(PolyConv(self.thetas[i]))
-        self.linear = nn.Linear(in_feats, h_feats)
-        self.linear2 = nn.Linear(h_feats, h_feats)
-        self.mlp = MLP(h_feats*len(self.conv), h_feats, num_classes, mlp_num_layers, dropout_rate)
-        self.act = getattr(nn, act_name)()
-        self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
+        
 
     def forward(self, blocks, x):
         verPrint(self.verbose, 3, f'BWGNN:forward | {blocks} {x}')
@@ -159,7 +166,8 @@ class BWGNN(nn.Module):
             h_final = torch.cat([h_final, h0], -1)
         h_final = self.dropout(h_final)
         h = self.mlp(h_final, False)
-        return h
+        
+        return h, None # No loss returned
     
     def calculate_theta(self, d):
         thetas = []
@@ -173,9 +181,6 @@ class BWGNN(nn.Module):
             thetas.append(inv_coeff)
         return thetas
 
-
-## SPLITGNN -> https://github.com/Split-GNN/SplitGNN/tree/master/src
-
 ## GHRN -> https://github.com/squareRoot3/GADBench
 class GHRN(nn.Module):
     def __init__():
@@ -184,10 +189,9 @@ class GHRN(nn.Module):
     def forward(self, graph):
         return 0
 
-### HOMO/HETEROPHILY-BASED FRAUD BENCHMARKS ###
-## GPRGNN -> https://github.com/jianhao2016/GPRGNN/tree/master
-## GHRN -> https://github.com/squareRoot3/GADBench
+## SPLITGNN -> https://github.com/Split-GNN/SplitGNN/tree/master/src
 
+### HOMO/HETEROPHILY-BASED FRAUD BENCHMARKS ###
 ## H2-FDetector -> https://github.com/squareRoot3/GADBench
 class H2FD(nn.Module):
     def __init__():
@@ -196,6 +200,8 @@ class H2FD(nn.Module):
     def forward(self, graph):
         return 0    
 
+## GPRGNN -> https://github.com/jianhao2016/GPRGNN/tree/master
+## GHRN -> https://github.com/squareRoot3/GADBench
 ## SEC-GFD - NO LINK
 
 ### CAMOUFLAGE-BASED FRAUD BENCHMARKS ###    

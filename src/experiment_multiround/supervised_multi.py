@@ -110,9 +110,9 @@ class MultiroundExperiment(object):
             if self.train_config['train_mode'] != 'batch':
                 # Forward pass
                 verPrint(self.verbose, 2, 'Forward')
-                logits = self.model(self.dset['graph'], self.dset['graph'].ndata['feature'])
+                logits, loss = self.model(self.dset['graph'], self.dset['graph'].ndata['feature'])
                 self.logits = logits
-                epoch_loss = self.loss(logits[self.dset['train_mask']], labels[self.dset['train_mask']], weight=torch.tensor([1., self.train_config['ce_weight']]))
+                epoch_loss = loss if loss != None else self.loss(logits[self.dset['train_mask']], labels[self.dset['train_mask']], weight=torch.tensor([1., self.train_config['ce_weight']]))
 
                 # Backward pass
                 verPrint(self.verbose, 2, 'Backward')
@@ -130,9 +130,9 @@ class MultiroundExperiment(object):
                     input_features = blocks[0].srcdata['feature']
                     output_labels = blocks[-1].dstdata['label']
 
-                    logits = self.model(blocks, input_features)
+                    logits, loss = self.model(blocks, input_features)
                     self.logits[output_nodes] = logits.cpu()
-                    epoch_loss = self.loss(logits, output_labels, weight=torch.tensor([1., self.train_config['ce_weight']]).to(torch.device('cuda')))
+                    epoch_loss = loss if loss != None else self.loss(logits, output_labels, weight=torch.tensor([1., self.train_config['ce_weight']]).to(torch.device('cuda')))
 
                     # Backward pass
                     verPrint(self.verbose, 2, 'Backward')
