@@ -124,7 +124,7 @@ class BWGNN(nn.Module):
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'BWGNN:__init__ | {in_feats} {num_classes} {model_config}')
         
-        super(BWGNN, self).__init__()
+        super().__init__()
         h_feats = model_config['h_feats']
         num_layers = model_config['num_layers']
         mlp_num_layers = model_config['mlp_num_layers']
