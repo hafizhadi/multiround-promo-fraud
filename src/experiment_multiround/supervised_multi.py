@@ -193,7 +193,7 @@ class MultiroundExperiment(object):
             self.init_model()
 
         # Train
-        self.model_train(reset_model=self.train_config['round_reset_model'])
+        self.model_train()
 
     # Round prediction on round
     def model_round_predict(self):
