@@ -1,4 +1,4 @@
-from models.benchmarks_supervised import GCN, GHRN, H2FD, CAREGNN
+from models.benchmarks_supervised import GCN, GHRN, H2FD, CAREGNN, BWGNN
 from adversarial.simple_adversarials import ReplayAdversary, PerturbationAdversary
 
 ### CONSTANTS ###
@@ -8,7 +8,8 @@ model_dict = {
     'GCN': GCN,
     'GHRN': GHRN,
     'H2F-DETECTOR': H2FD,
-    'CARE-GNN':CAREGNN
+    'CARE-GNN':CAREGNN,
+    'BWGNN': BWGNN
 }
 
 # Adversarial Dictionary
