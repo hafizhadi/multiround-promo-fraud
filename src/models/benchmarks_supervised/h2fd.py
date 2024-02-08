@@ -244,8 +244,7 @@ class H2FD(BaseModel):
             self.mine_layers.append(H2FDMultiRelationLayer(self.intra_dim * att_heads, self.class_num, att_heads, etypes, dropout_rate, if_sum=True))
 
     
-    def forward(self, graph):
-        feats = graph.ndata['feature'].float()
+    def forward(self, graph, x):
         train_mask = graph.ndata['train_mask'].bool()
         train_label = graph.ndata['label'][train_mask]
 
@@ -255,7 +254,7 @@ class H2FD(BaseModel):
         neg_index = np.random.choice(neg_index, size=len(pos_index), replace=False)
         index = np.concatenate([pos_index, neg_index])
 
-        h, edge_loss, prototype_loss = self.mine_layers[0].loss(graph, feats)
+        h, edge_loss, prototype_loss = self.mine_layers[0].loss(graph, x)
         for i in range(1, len(self.mine_layers)):
             h = self.relu(h)
             h = self.dropout(h)
