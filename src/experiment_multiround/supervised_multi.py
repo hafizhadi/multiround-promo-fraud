@@ -202,7 +202,8 @@ class MultiroundExperiment(object):
         self.model.eval()
         
         labels = self.dset['graph'].ndata['label']
-        probs = self.model(self.dset['graph'], self.dset['graph'].ndata['feature']).softmax(1)
+        logits, loss = self.model(self.dset['graph'], self.dset['graph'].ndata['feature'])
+        probs = logits.softmax(1)
         f1, thres = get_best_f1(labels, probs)
        
         preds = torch.zeros_like(self.dset['graph'].ndata['label'])
