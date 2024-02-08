@@ -37,7 +37,7 @@ class MultiroundExperiment(object):
     def init_model(self):
         in_dimension = self.dset['graph'].ndata['feature'].shape[1]
         class_num =  self.dset['graph'].ndata['label'].unique(return_counts=True)[0].shape[0]
-        self.model = model_dict[self.model_config['model_name']](in_dimension, class_num, self.model_config, verbose=self.verbose)
+        self.model = model_dict[self.model_config['model_name']](in_dimension, class_num, verbose=self.verbose, **self.model_config)
         if self.train_config['train_mode'] == 'batch':
             self.model.cuda()
     
