@@ -93,7 +93,7 @@ class GCN(BaseModel):
         """
         # Set verbosity
         self.verbose=verbose       
-        verPrint(self.verbose, 3, f'GCN:__init__ | {in_feats} {num_classes} {model_config}')
+        verPrint(self.verbose, 3, f'GCN:__init__ | {in_feats} {num_classes} {h_feats} {num_layers} {mlp_h_feats} {mlp_num_layers} {dropout_rate} {act_name} {train_mode}')
         
         super().__init__()        
         # Other modules
