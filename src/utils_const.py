@@ -1,4 +1,6 @@
-from models.benchmarks_supervised import GCN, GHRN, H2FD, CAREGNN, BWGNN
+from models.benchmarks_supervised.simple import GCN
+from models.benchmarks_supervised.spectral import BWGNN
+from models.benchmarks_supervised.h2fd import H2FD
 from adversarial.simple_adversarials import ReplayAdversary, PerturbationAdversary
 
 ### CONSTANTS ###
@@ -6,9 +8,7 @@ from adversarial.simple_adversarials import ReplayAdversary, PerturbationAdversa
 model_dict = {
     # Standard GNNs
     'GCN': GCN,
-    'GHRN': GHRN,
     'H2F-DETECTOR': H2FD,
-    'CARE-GNN':CAREGNN,
     'BWGNN': BWGNN
 }
 
