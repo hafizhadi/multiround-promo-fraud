@@ -139,7 +139,7 @@ class H2FDMultiRelationLayer(nn.Module):
         self.liner = nn.Linear(len(self.relations) * h_feats, h_feats) if if_sum else nn.Linear(len(self.relations) * h_feats * att_heads, h_feats * att_heads)
         self.minelayers = nn.ModuleDict()
         for e in self.relations:
-            self.minelayers[e] = H2FDLayer(in_feats, h_feats, att_heads, self.relation_aware, e, if_sum)
+            self.minelayers[e] = H2FDLayer(in_feats, h_feats, att_heads, e, self.relation_aware, if_sum)
     
     def forward(self, graph, h):
         h = torch.cat([self.minelayers[e](graph, h) for e in self.relations], dim=1)
