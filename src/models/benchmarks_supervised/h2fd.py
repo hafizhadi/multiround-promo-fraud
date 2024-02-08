@@ -130,7 +130,7 @@ class H2FDMultiRelationLayer(nn.Module):
             if_sum (bool, optional): _description_. Defaults to False.
             verbose (int, optional): _description_. Defaults to 0.
         """
-
+        super().__init__()
         self.relations = copy.deepcopy(relations)
         
         self.relation_aware = H2FDRelationAware(in_feats, h_feats * att_heads, dropout_rate)
@@ -221,7 +221,7 @@ class H2FD(BaseModel):
         # Set verbosity
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'MLP:__init__ | {in_feats} {num_classes} {etypes} {n_layer} {intra_dim} {gamma1} {gamma2} {att_heads} {dropout_rate} {kwargs}')
-        
+
         super().__init__()
         super().__init__()
         
