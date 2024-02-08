@@ -17,7 +17,7 @@ class MultiroundExperiment(object):
         adver_config['train_mode'] = train_config['train_mode']
 
         self.verbose=verbose
-        self.dset['graph'] = graph
+        self.dset = { 'graph': graph}
         self.model_config = model_config
         self.adver_config = adver_config
         self.train_config = train_config      
