@@ -264,7 +264,7 @@ class H2FD(BaseModel):
         
         model_loss = F.cross_entropy(h[train_mask][index], train_label[index])
         loss = model_loss + (self.gamma1 * edge_loss) + (self.gamma2 * prototype_loss)
-        return loss, h
+        return h, loss
     
     @staticmethod
     def generate_edges_labels(edges, labels, train_idx):
