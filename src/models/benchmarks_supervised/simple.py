@@ -30,7 +30,7 @@ class MLP(nn.Module):
         
         # Set verbosity
         self.verbose=verbose       
-        verPrint(self.verbose, 3, f'MLP:__init__ | {in_feats} {h_feats} {num_classes} {num_layers} {dropout_rate} {activation} {kwargs}')
+        verPrint(self.verbose, 3, f'MLP:__init__ | {in_feats} {num_classes} {h_feats} {num_layers} {dropout_rate} {activation} {kwargs}')
 
         # Linears
         self.layers = nn.ModuleList()       

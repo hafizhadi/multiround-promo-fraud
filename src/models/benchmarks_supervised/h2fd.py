@@ -130,7 +130,7 @@ class H2FDMultiRelationLayer(nn.Module):
             if_sum (bool, optional): _description_. Defaults to False.
             verbose (int, optional): _description_. Defaults to 0.
         """
-        super().__init__()
+
         self.relations = copy.deepcopy(relations)
         
         self.relation_aware = H2FDRelationAware(in_feats, h_feats * att_heads, dropout_rate)
@@ -202,13 +202,14 @@ class H2FDMultiRelationLayer(nn.Module):
 ## H2-FD - Main Model
 class H2FD(BaseModel):
     def __init__(
-        self, in_feats, class_num, etypes=['none'], n_layer=1, intra_dim=16,
-        gamma1=1.2, gamma2=2, att_heads=2, dropout_rate=0.1, **kwargs):
+        self, in_feats, num_classes, etypes=['none'], n_layer=1, intra_dim=16,
+        gamma1=1.2, gamma2=2, att_heads=2, dropout_rate=0.1, 
+        verbose=1, **kwargs):
         """_summary_
 
         Args:
             in_feats (_type_): _description_
-            class_num (int, optional): _description_.
+            num_classes (int, optional): _description_.
             etypes (_type_): _description_
             n_layer (int, optional): _description_. Defaults to 1.
             intra_dim (int, optional): _description_. Defaults to 16.
@@ -217,10 +218,15 @@ class H2FD(BaseModel):
             att_heads (int, optional): _description_. Defaults to 2.
             dropout_rate (float, optional): _description_. Defaults to 0.1.
         """
+        # Set verbosity
+        self.verbose=verbose       
+        verPrint(self.verbose, 3, f'MLP:__init__ | {in_feats} {num_classes} {etypes} {n_layer} {intra_dim} {gamma1} {gamma2} {att_heads} {dropout_rate} {kwargs}')
+        
+        super().__init__()
         super().__init__()
         
         self.in_feats = in_feats
-        self.class_num = class_num
+        self.num_classes = num_classes
         self.n_layer = n_layer 
         self.intra_dim = intra_dim 
         self.head = att_heads
@@ -235,12 +241,12 @@ class H2FD(BaseModel):
         # Layers
         self.mine_layers = nn.ModuleList()
         if n_layer == 1:
-            self.mine_layers.append(H2FDMultiRelationLayer(self.in_feats, self.class_num, att_heads, etypes, dropout_rate, if_sum=True))
+            self.mine_layers.append(H2FDMultiRelationLayer(self.in_feats, self.num_classes, att_heads, etypes, dropout_rate, if_sum=True))
         else:
             self.mine_layers.append(H2FDMultiRelationLayer(self.in_feats, self.intra_dim, att_heads, etypes, dropout_rate))
             for _ in range(1, self.n_layer-1):
                 self.mine_layers.append(H2FDMultiRelationLayer(self.intra_dim * att_heads, self.intra_dim, att_heads, etypes, dropout_rate))
-            self.mine_layers.append(H2FDMultiRelationLayer(self.intra_dim * att_heads, self.class_num, att_heads, etypes, dropout_rate, if_sum=True))
+            self.mine_layers.append(H2FDMultiRelationLayer(self.intra_dim * att_heads, self.num_classes, att_heads, etypes, dropout_rate, if_sum=True))
 
     
     def forward(self, graph, x):
