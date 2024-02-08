@@ -75,7 +75,7 @@ class BWGNN(BaseModel):
         # Linear and MLP
         self.linear = nn.Linear(in_feats, h_feats)
         self.linear2 = nn.Linear(h_feats, h_feats)
-        self.mlp = MLP(h_feats * (num_layers + 1), h_feats, num_classes, mlp_num_layers, dropout_rate)
+        self.mlp = MLP(h_feats * len(self.thetas), h_feats, num_classes, mlp_num_layers, dropout_rate)
 
 
     def forward(self, blocks, x):
