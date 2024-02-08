@@ -272,8 +272,6 @@ class MultiroundExperiment(object):
             self.dset['graph'].add_nodes(len(new_nodes['label']), new_nodes)
             self.dset['graph'].add_edges(edge_src, edge_dst)
 
-            # TODO: Update node and ground truth masks
-
         self.model_round_train(round)
         self.rounds[round]['preds'], self.rounds[round]['probs'], self.rounds[round]['checks'] = self.model_round_predict()
         round_mask = (self.dset['graph'].ndata['creation_round'] == round).nonzero()
