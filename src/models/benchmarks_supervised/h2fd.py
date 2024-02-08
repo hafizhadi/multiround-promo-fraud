@@ -10,7 +10,6 @@ from torch import nn
 from models.base_model import BaseModel
 
 ### Model ###
-## H2-FD - Edge Scorer Module TODO FINISH AND TEST THIS
 class H2FDRelationAware(nn.Module):
     def __init__(
         self, in_feats, h_feats, 
