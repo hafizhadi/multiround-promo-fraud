@@ -91,9 +91,9 @@ class H2FDLayer(nn.Module):
     def message(self, edges):
         src = edges.src
         src_features = edges.data['sign'].view(-1,1) * src['h']
-        src_features = src_features.view(-1, self.att_heads, self.hd)
+        src_features = src_features.view(-1, self.att_heads, self.h_feats)
         
-        z = torch.cat([src_features, edges.dst['h'].view(-1, self.att_heads, self.hd)], dim=-1)
+        z = torch.cat([src_features, edges.dst['h'].view(-1, self.att_heads, self.h_feats)], dim=-1)
         
         alpha = self.atten(z)
         alpha = self.leakyrelu(alpha)
