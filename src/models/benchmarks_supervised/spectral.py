@@ -66,17 +66,17 @@ class BWGNN(BaseModel):
         self.act = getattr(nn, act_name)()
         self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
         
-        # Linear and MLP
-        self.linear = nn.Linear(in_feats, h_feats)
-        self.linear2 = nn.Linear(h_feats, h_feats)
-        self.mlp = MLP(h_feats*len(self.conv), h_feats, num_classes, mlp_num_layers, dropout_rate)
-
         # BW Filters
         self.thetas = self.calculate_theta(d=num_layers)
         self.conv = []
         for i in range(len(self.thetas)):
             self.conv.append(PolyConv(self.thetas[i]))
         
+        # Linear and MLP
+        self.linear = nn.Linear(in_feats, h_feats)
+        self.linear2 = nn.Linear(h_feats, h_feats)
+        self.mlp = MLP(h_feats*len(self.conv), h_feats, num_classes, mlp_num_layers, dropout_rate)
+
 
     def forward(self, blocks, x):
         verPrint(self.verbose, 3, f'BWGNN:forward | {blocks} {x}')
