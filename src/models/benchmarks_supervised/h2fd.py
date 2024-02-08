@@ -263,6 +263,8 @@ class H2FD(BaseModel):
             prototype_loss += p_loss
         
         model_loss = F.cross_entropy(h[train_mask][index], train_label[index])
+
+        verPrint(self.verbose, 2, f'Model loss: {model_loss}, Edge loss: {edge_loss}, Prototype loss: {prototype_loss}')
         loss = model_loss + (self.gamma1 * edge_loss) + (self.gamma2 * prototype_loss)
         return h, loss
     
