@@ -101,7 +101,7 @@ class MultiroundExperiment(object):
 
         # Main Training Loop
         time_start = time.time()
-        verPrint(self.verbose, 1, 'Starting training!')
+        verPrint(self.verbose, 1, 'Starting training...')
         for e in range(self.train_config['num_epoch']):
             self.model.train()
             self.logits = torch.zeros([len(labels), 2])
