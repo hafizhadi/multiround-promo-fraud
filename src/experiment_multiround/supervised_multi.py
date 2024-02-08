@@ -256,9 +256,9 @@ class MultiroundExperiment(object):
             # Nodes proc
             new_nodes = {key:torch.cat((new_adv_nodes[key], new_neg_nodes[key]), 0) for key in list(new_adv_nodes.keys()) if key != '_ID'}
             new_nodes['creation_round'] = torch.full([len(new_nodes['label'])], round)
-            new_nodes['train_mask'] = torch.full([len(new_nodes['label'])], 0)
-            new_nodes['val_mask'] = torch.full([len(new_nodes['label'])], 0)
-            new_nodes['test_mask'] = torch.full([len(new_nodes['label'])], 1)
+            new_nodes['train_mask'] = torch.full([len(new_nodes['label'])], 0).bool()
+            new_nodes['val_mask'] = torch.full([len(new_nodes['label'])], 0).bool()
+            new_nodes['test_mask'] = torch.full([len(new_nodes['label'])], 1).bool()
             
             # Edges proc
             new_neg_edges['src'] = new_neg_edges['src'] + len(new_adv_nodes['label'])
