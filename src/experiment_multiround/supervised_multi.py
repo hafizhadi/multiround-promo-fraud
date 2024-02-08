@@ -256,6 +256,9 @@ class MultiroundExperiment(object):
             # Nodes proc
             new_nodes = {key:torch.cat((new_adv_nodes[key], new_neg_nodes[key]), 0) for key in list(new_adv_nodes.keys()) if key != '_ID'}
             new_nodes['creation_round'] = torch.full([len(new_nodes['label'])], round)
+            new_nodes['train_mask'] = torch.full([len(new_nodes['label'])], 0)
+            new_nodes['val_mask'] = torch.full([len(new_nodes['label'])], 0)
+            new_nodes['test_mask'] = torch.full([len(new_nodes['label'])], 1)
             
             # Edges proc
             new_neg_edges['src'] = new_neg_edges['src'] + len(new_adv_nodes['label'])
@@ -265,13 +268,9 @@ class MultiroundExperiment(object):
             edge_dst = new_edges['dst'].long()
             del new_edges['src'], new_edges['dst']
 
-            # Update graph and related metadata
+            # Update graph
             self.dset['graph'].add_nodes(len(new_nodes['label']), new_nodes)
             self.dset['graph'].add_edges(edge_src, edge_dst)
-
-            self.dset['graph'].ndata['train_mask'] = torch.cat([self.dset['graph'].ndata['train_mask'], torch.full([len(new_nodes['label'])], 0)], 0)
-            self.dset['graph'].ndata['val_mask'] = torch.cat([self.dset['graph'].ndata['val_mask'], torch.full([len(new_nodes['label'])], 0)], 0)
-            self.dset['graph'].ndata['test_mask'] = torch.cat([self.dset['graph'].ndata['test_mask'], torch.full([len(new_nodes['label'])], 1)], 0)
 
             # TODO: Update node and ground truth masks
 
