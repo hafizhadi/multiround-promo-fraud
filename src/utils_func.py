@@ -13,6 +13,14 @@ def verPrint(verbose_status, verbose_threshold, msg):
         print(msg)
 
 ## Training related
+def hinge_loss(labels, scores):
+    margin = 1
+    ls = labels*scores
+    
+    loss = F.relu(margin-ls)
+    loss = loss.mean()
+    return loss
+
 def get_best_f1(labels, probs):
     best_f1, best_thre = 0, 0
     for thres in np.linspace(0.05, 0.95, 19):
