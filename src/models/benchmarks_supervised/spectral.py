@@ -8,6 +8,7 @@ import dgl.function as fn
 
 from torch import nn
 from models.benchmarks_supervised.simple import MLP
+from models.base_model import BaseModel
 
 ### BWGNN ###
 ## Polyconv Module
@@ -39,7 +40,7 @@ class PolyConv(nn.Module):
         return h
     
 ## Main Model
-class BWGNN(nn.Module):
+class BWGNN(BaseModel):
     def __init__(
         self, in_feats, num_classes, h_feats, num_layers, mlp_num_layers,
         dropout_rate=0, act_name='ReLU', verbose=0, **kwargs):
@@ -111,7 +112,7 @@ class BWGNN(nn.Module):
         return thetas
 
 ## GHRN -> https://github.com/squareRoot3/GADBench
-class GHRN(nn.Module):
+class GHRN(BaseModel):
     def __init__():
         super().__init__(self)
     

@@ -17,7 +17,7 @@ class MultiroundExperiment(object):
         adver_config['train_mode'] = train_config['train_mode']
 
         self.verbose=verbose
-        self.dset = {'graph': graph}
+        self.dset['graph'] = graph
         self.model_config = model_config
         self.adver_config = adver_config
         self.train_config = train_config      
@@ -50,9 +50,9 @@ class MultiroundExperiment(object):
         
         labels = self.dset['graph'].ndata['label']
 
-        self.dset['train_mask'] = torch.zeros([len(labels)]).bool()
-        self.dset['val_mask'] = torch.zeros([len(labels)]).bool()
-        self.dset['test_mask'] = torch.zeros([len(labels)]).bool()
+        self.dset['graph'].ndata['train_mask'] = torch.zeros([len(labels)]).bool()
+        self.dset['graph'].ndata['val_mask'] = torch.zeros([len(labels)]).bool()
+        self.dset['graph'].ndata['test_mask'] = torch.zeros([len(labels)]).bool()
 
         if round > 0:
             initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten() if all_data else torch.tensor([], dtype=torch.long)
@@ -80,17 +80,16 @@ class MultiroundExperiment(object):
             test_size = self.train_config['test_ratio_from_rest'], random_state = self.train_config['random_state'], shuffle=True
         )
 
-        self.dset['train_mask'][idx_train] = 1
-        self.dset['val_mask'][idx_valid] = 1
-        self.dset['test_mask'][idx_test] = 1
-        self.dset['test_mask'][nonindex] = 1
+        self.dset['graph'].ndata['train_mask'][idx_train] = 1
+        self.dset['graph'].ndata['val_mask'][idx_valid] = 1
+        self.dset['graph'].ndata['test_mask'][idx_test] = 1
+        self.dset['graph'].ndata['test_mask'][nonindex] = 1
 
-        self.train_config['ce_weight'] = (1-labels[self.dset['train_mask']]).sum().item() / labels[self.dset['train_mask']].sum().item()
+        self.train_config['ce_weight'] = (1-labels[self.dset['graph'].ndata['train_mask']]).sum().item() / labels[self.dset['graph'].ndata['train_mask']].sum().item()
 
         return idx_train, idx_valid, idx_test, y_train, y_valid, y_test
 
-
-    # Initial training for the first round
+    # Train model normally on entire dataset
     def model_train(self):
         # Inits
         best_f1, final_tf1, final_trec, final_tpre, final_tmf1, final_tauc = 0., 0., 0., 0., 0., 0.
@@ -112,7 +111,7 @@ class MultiroundExperiment(object):
                 verPrint(self.verbose, 2, 'Forward')
                 logits, loss = self.model(self.dset['graph'], self.dset['graph'].ndata['feature'])
                 self.logits = logits
-                epoch_loss = loss if loss != None else self.loss(logits[self.dset['train_mask']], labels[self.dset['train_mask']], weight=torch.tensor([1., self.train_config['ce_weight']]))
+                epoch_loss = loss if loss != None else self.loss(logits[self.dset['graph'].ndata['train_mask']], labels[self.dset['graph'].ndata['train_mask']], weight=torch.tensor([1., self.train_config['ce_weight']]))
 
                 # Backward pass
                 verPrint(self.verbose, 2, 'Backward')
@@ -150,11 +149,11 @@ class MultiroundExperiment(object):
             self.model.eval()
             probs = self.logits.softmax(1)
 
-            f1, thres = get_best_f1(labels[self.dset['val_mask']], probs[self.dset['val_mask']])
+            f1, thres = get_best_f1(labels[self.dset['graph'].ndata['val_mask']], probs[self.dset['graph'].ndata['val_mask']])
             preds = np.zeros_like(labels)
             preds[probs[:, 1] > thres] = 1
 
-            trec, tpre, tmf1, tauc = eval_and_print(0, labels[self.dset['test_mask']], preds[self.dset['test_mask']], probs[self.dset['test_mask']][:, 1], f'Epoch {e}')
+            trec, tpre, tmf1, tauc = eval_and_print(0, labels[self.dset['graph'].ndata['test_mask']], preds[self.dset['graph'].ndata['test_mask']], probs[self.dset['graph'].ndata['test_mask']][:, 1], f'Epoch {e}')
             if best_f1 < f1:
                 best_f1 = f1
                 final_trec = trec
@@ -191,6 +190,9 @@ class MultiroundExperiment(object):
         # TODO: If not return to model snapshot on previous step?
         if self.train_config['round_reset_model']:
             self.init_model()
+
+        # Prepare graph for model training
+        self.dset['graph'] = model_dict[self.model_config['model_name']].prepare_graph(self.dset['graph'])
 
         # Train
         self.model_train()
@@ -266,9 +268,9 @@ class MultiroundExperiment(object):
             self.dset['graph'].add_nodes(len(new_nodes['label']), new_nodes)
             self.dset['graph'].add_edges(edge_src, edge_dst)
 
-            self.dset['train_mask'] = torch.cat([self.dset['train_mask'], torch.full([len(new_nodes['label'])], 0)], 0)
-            self.dset['val_mask'] = torch.cat([self.dset['val_mask'], torch.full([len(new_nodes['label'])], 0)], 0)
-            self.dset['test_mask'] = torch.cat([self.dset['test_mask'], torch.full([len(new_nodes['label'])], 1)], 0)
+            self.dset['graph'].ndata['train_mask'] = torch.cat([self.dset['graph'].ndata['train_mask'], torch.full([len(new_nodes['label'])], 0)], 0)
+            self.dset['graph'].ndata['val_mask'] = torch.cat([self.dset['graph'].ndata['val_mask'], torch.full([len(new_nodes['label'])], 0)], 0)
+            self.dset['graph'].ndata['test_mask'] = torch.cat([self.dset['graph'].ndata['test_mask'], torch.full([len(new_nodes['label'])], 1)], 0)
 
             # TODO: Update node and ground truth masks
 

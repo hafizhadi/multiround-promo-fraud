@@ -7,6 +7,7 @@ import dgl.nn.pytorch.conv as dglnn
 import dgl.function as fn
 
 from torch import nn
+from models.base_model import BaseModel
 
 ### Common Submodules ###
 class MLP(nn.Module):
@@ -70,7 +71,7 @@ class MLP(nn.Module):
 
 
 ### GCN ###
-class GCN(nn.Module):
+class GCN(BaseModel):
     def __init__(
         self, in_feats, num_classes, h_feats, num_layers,
         mlp_h_feats, mlp_num_layers, 

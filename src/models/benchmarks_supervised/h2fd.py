@@ -7,6 +7,7 @@ import numpy as np
 import torch.nn.functional as F
 
 from torch import nn
+from models.base_model import BaseModel
 
 ### Model ###
 ## H2-FD - Edge Scorer Module TODO FINISH AND TEST THIS
@@ -200,7 +201,7 @@ class H2FDMultiRelationLayer(nn.Module):
         return {'score':score}
 
 ## H2-FD - Main Model
-class H2FD(nn.Module):
+class H2FD(BaseModel):
     def __init__(
         self, in_feats, etypes, n_class=2, n_layer=1, intra_dim=16,
         gamma1=1.2, gamma2=2, att_heads=2, dropout_rate=0.1, **kwargs):

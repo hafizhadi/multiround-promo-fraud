@@ -43,6 +43,8 @@ def eval_and_print(verbose_level, labels, preds, probs, msg):
     return (rec, prec, f1, auc)
     
 ## Graph related
+
+# TODO: Multilayer version
 def random_duplicate(graph, n_instances=1, label=None, return_seed=False):
     
     if label == None:
