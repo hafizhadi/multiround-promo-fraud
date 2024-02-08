@@ -14,6 +14,8 @@ class MultiroundExperiment(object):
     ## Class Methods
     def __init__(self, model_config, adver_config, train_config, graph, verbose=0):
         model_config['train_mode'] = train_config['train_mode']
+        model_config['etypes'] = ['none'] if graph.is_homogeneous else graph.etypes
+
         adver_config['train_mode'] = train_config['train_mode']
 
         self.verbose=verbose

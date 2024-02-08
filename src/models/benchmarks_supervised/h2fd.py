@@ -203,14 +203,14 @@ class H2FDMultiRelationLayer(nn.Module):
 ## H2-FD - Main Model
 class H2FD(BaseModel):
     def __init__(
-        self, in_feats, etypes, n_class=2, n_layer=1, intra_dim=16,
+        self, in_feats, class_num, etypes=['none'], n_layer=1, intra_dim=16,
         gamma1=1.2, gamma2=2, att_heads=2, dropout_rate=0.1, **kwargs):
         """_summary_
 
         Args:
             in_feats (_type_): _description_
+            class_num (int, optional): _description_.
             etypes (_type_): _description_
-            n_class (int, optional): _description_. Defaults to 2.
             n_layer (int, optional): _description_. Defaults to 1.
             intra_dim (int, optional): _description_. Defaults to 16.
             gamma1 (float, optional): _description_. Defaults to 1.2.
@@ -221,7 +221,7 @@ class H2FD(BaseModel):
         super().__init__()
         
         self.in_feats = in_feats
-        self.n_class = n_class
+        self.class_num = class_num
         self.n_layer = n_layer 
         self.intra_dim = intra_dim 
         self.head = att_heads
@@ -236,12 +236,12 @@ class H2FD(BaseModel):
         # Layers
         self.mine_layers = nn.ModuleList()
         if n_layer == 1:
-            self.mine_layers.append(H2FDMultiRelationLayer(self.in_feats, self.n_class, att_heads, etypes, dropout_rate, if_sum=True))
+            self.mine_layers.append(H2FDMultiRelationLayer(self.in_feats, self.class_num, att_heads, etypes, dropout_rate, if_sum=True))
         else:
             self.mine_layers.append(H2FDMultiRelationLayer(self.in_feats, self.intra_dim, att_heads, etypes, dropout_rate))
             for _ in range(1, self.n_layer-1):
                 self.mine_layers.append(H2FDMultiRelationLayer(self.intra_dim * att_heads, self.intra_dim, att_heads, etypes, dropout_rate))
-            self.mine_layers.append(H2FDMultiRelationLayer(self.intra_dim * att_heads, self.n_class, att_heads, etypes, dropout_rate, if_sum=True))
+            self.mine_layers.append(H2FDMultiRelationLayer(self.intra_dim * att_heads, self.class_num, att_heads, etypes, dropout_rate, if_sum=True))
 
     
     def forward(self, graph):
