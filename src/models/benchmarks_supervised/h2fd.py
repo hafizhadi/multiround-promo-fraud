@@ -205,6 +205,7 @@ class H2FDMultiRelationLayer(nn.Module):
         
     def score_edges(self, edges):
         score = self.relation_aware(edges.src['feature'], edges.dst['feature'])
+        verPrint(self.verbose, 2, f'{score}')
         return {'score':score}
 
 ## H2-FD - Main Model
