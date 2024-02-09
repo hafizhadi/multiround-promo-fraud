@@ -80,7 +80,7 @@ class H2FDLayer(nn.Module):
 
     def forward(self, graph, h):
         with graph.local_scope():
-            graph.ndata['feat'] = h
+            graph.ndata['feature'] = h
             graph.apply_edges(self.sign_edges, etype=self.etype)
             h = self.w_liner(h)
             graph.ndata['h'] = h
@@ -110,7 +110,7 @@ class H2FDLayer(nn.Module):
         return {'out':out}
 
     def sign_edges(self, edges):
-        score = self.relation_aware(edges.src['feat'], edges.dst['feat'])
+        score = self.relation_aware(edges.src['feature'], edges.dst['feature'])
         return {'sign':torch.sign(score)}
 
 ## H2-FD - Multirelation Detector Module
@@ -156,7 +156,7 @@ class H2FDMultiRelationLayer(nn.Module):
     def loss(self, graph, h):
 
         with graph.local_scope():
-            graph.ndata['feat'] = h
+            graph.ndata['feature'] = h
 
             # Edge clasification loss
             graph.apply_edges(self.score_edges, etype='homo')
@@ -204,7 +204,7 @@ class H2FDMultiRelationLayer(nn.Module):
             return agg_h, edge_diff_loss, diff_loss
         
     def score_edges(self, edges):
-        score = self.relation_aware(edges.src['feat'], edges.dst['feat'])
+        score = self.relation_aware(edges.src['feature'], edges.dst['feature'])
         return {'score':score}
 
 ## H2-FD - Main Model
