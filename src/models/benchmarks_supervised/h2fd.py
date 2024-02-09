@@ -131,6 +131,11 @@ class H2FDMultiRelationLayer(nn.Module):
             verbose (int, optional): _description_. Defaults to 0.
         """
         super().__init__()
+
+        # Set verbosity
+        self.verbose=verbose       
+        verPrint(self.verbose, 3, f'H2FDMultiRelationLayer:__init__ | {in_feats} {h_feats} {att_heads} {relations} {att_heads} {dropout_rate} {kwargs}')
+
         self.relations = copy.deepcopy(relations)
         
         self.relation_aware = H2FDRelationAware(in_feats, h_feats * att_heads, dropout_rate)
@@ -149,6 +154,7 @@ class H2FDMultiRelationLayer(nn.Module):
         return h
     
     def loss(self, graph, h):
+
         with graph.local_scope():
             graph.ndata['feat'] = h
 
@@ -165,6 +171,8 @@ class H2FDMultiRelationLayer(nn.Module):
             edge_train_pos_index = np.random.choice(edge_train_pos_index, size=len(edge_train_neg_index))            
             index = np.concatenate([edge_train_pos_index, edge_train_neg_index])
 
+            verPrint(self.verbose, 3, f'{str(edge_train_score)}')
+            verPrint(self.verbose, 3, f'{str(edge_train_label)}')
             edge_diff_loss = hinge_loss(edge_train_label[index], edge_train_score[index])
 
             # Prototype Loss
@@ -219,7 +227,7 @@ class H2FD(BaseModel):
             dropout_rate (float, optional): _description_. Defaults to 0.1.
         """
         super().__init__()
-        
+
         # Set verbosity
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'H2FD:__init__ | {in_feats} {num_classes} {etypes} {n_layer} {intra_dim} {gamma1} {gamma2} {att_heads} {dropout_rate} {kwargs}')
@@ -241,12 +249,12 @@ class H2FD(BaseModel):
         # Layers
         self.mine_layers = nn.ModuleList()
         if n_layer == 1:
-            self.mine_layers.append(H2FDMultiRelationLayer(self.in_feats, self.num_classes, att_heads, etypes, dropout_rate, if_sum=True))
+            self.mine_layers.append(H2FDMultiRelationLayer(self.in_feats, self.num_classes, att_heads, etypes, dropout_rate, if_sum=True, verbose=self.verbose))
         else:
-            self.mine_layers.append(H2FDMultiRelationLayer(self.in_feats, self.intra_dim, att_heads, etypes, dropout_rate))
+            self.mine_layers.append(H2FDMultiRelationLayer(self.in_feats, self.intra_dim, att_heads, etypes, dropout_rate, verbose=self.verbose))
             for _ in range(1, self.n_layer-1):
-                self.mine_layers.append(H2FDMultiRelationLayer(self.intra_dim * att_heads, self.intra_dim, att_heads, etypes, dropout_rate))
-            self.mine_layers.append(H2FDMultiRelationLayer(self.intra_dim * att_heads, self.num_classes, att_heads, etypes, dropout_rate, if_sum=True))
+                self.mine_layers.append(H2FDMultiRelationLayer(self.intra_dim * att_heads, self.intra_dim, att_heads, etypes, dropout_rate, verbose=self.verbose))
+            self.mine_layers.append(H2FDMultiRelationLayer(self.intra_dim * att_heads, self.num_classes, att_heads, etypes, dropout_rate, if_sum=True, verbose=self.verbose))
 
     
     def forward(self, graph, x):
