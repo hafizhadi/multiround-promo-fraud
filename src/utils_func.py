@@ -15,6 +15,9 @@ def verPrint(verbose_status, verbose_threshold, msg):
 
 ## Training related
 def hinge_loss(labels, scores):
+    print("Labels", labels)
+    print("Scores", scores)
+
     margin = 1
     ls = labels * scores
     
