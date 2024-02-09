@@ -19,7 +19,8 @@ class PolyConv(nn.Module):
         Args:
             theta (_type_): _description_
         """
-        super(PolyConv, self).__init__()
+        super().__init__()
+        
         self._theta = theta
         self._k = len(self._theta)
 
@@ -56,11 +57,11 @@ class BWGNN(BaseModel):
             act_name (str, optional): _description_. Defaults to 'ReLU'.
             verbose (int, optional): _description_. Defaults to 0.
         """
+        super().__init__()
 
         # Set verbosity
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'BWGNN:__init__ | {in_feats} {num_classes} {h_feats} {num_layers} {mlp_num_layers} {dropout_rate} {act_name} {kwargs}')
-        super().__init__()
 
         # Misc modules
         self.act = getattr(nn, act_name)()

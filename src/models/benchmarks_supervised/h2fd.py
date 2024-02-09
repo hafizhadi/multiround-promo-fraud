@@ -218,12 +218,12 @@ class H2FD(BaseModel):
             att_heads (int, optional): _description_. Defaults to 2.
             dropout_rate (float, optional): _description_. Defaults to 0.1.
         """
+        super().__init__()
+        
         # Set verbosity
         self.verbose=verbose       
-        verPrint(self.verbose, 3, f'MLP:__init__ | {in_feats} {num_classes} {etypes} {n_layer} {intra_dim} {gamma1} {gamma2} {att_heads} {dropout_rate} {kwargs}')
+        verPrint(self.verbose, 3, f'H2FD:__init__ | {in_feats} {num_classes} {etypes} {n_layer} {intra_dim} {gamma1} {gamma2} {att_heads} {dropout_rate} {kwargs}')
 
-        super().__init__()
-        super().__init__()
         
         self.in_feats = in_feats
         self.num_classes = num_classes

@@ -26,7 +26,7 @@ class MLP(nn.Module):
             activation (str, optional): _description_. Defaults to 'ReLU'.
             verbose (int, optional): _description_. Defaults to 0.
         """
-        super(MLP, self).__init__()
+        super().__init__()
         
         # Set verbosity
         self.verbose=verbose       
@@ -91,11 +91,12 @@ class GCN(BaseModel):
             train_mode (str, optional): _description_. Defaults to 'normal'.
             verbose (int, optional): _description_. Defaults to 0.
         """
+        super().__init__()
+
         # Set verbosity
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'GCN:__init__ | {in_feats} {num_classes} {h_feats} {num_layers} {mlp_h_feats} {mlp_num_layers} {dropout_rate} {act_name} {train_mode}')
         
-        super().__init__()        
         # Other modules
         self.act = getattr(nn, act_name)()
         self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
