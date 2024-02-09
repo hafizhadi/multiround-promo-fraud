@@ -298,13 +298,17 @@ class H2FD(BaseModel):
         Returns:
             (torch.Tensor, torch.Tensor): A pair of vector with identical dimension; the former indicates the label for each edge and the latter indicate train mask for the respective
         """
+        print('train_idx', train_idx)
         srcs, dsts = edges[0].cpu(), edges[1].cpu()
         edge_labels = ((labels[srcs] == labels[dsts]).int() - 0.5).sign().long() # 1 if same label, -1 otherwise
-        edge_train_mask = torch.zeros_like(srcs).bool()
-        for idx in train_idx: # Iterate due to memory load if not
-            edge_train_mask = edge_train_mask | ((srcs == idx) & (dsts == idx)) # True if both in train_idx, false otherwise
+        src_train_mask = torch.zeros_like(srcs).bool()
+        dst_train_mask = torch.zeros_like(srcs).bool()
 
-        return edge_labels, edge_train_mask
+        for idx in train_idx: # Iterate due to memory load if not
+            src_train_mask = src_train_mask | ((srcs == idx)) # True if both in train_idx, false otherwise
+            dst_train_mask = dst_train_mask | ((dsts == idx)) # True if both in train_idx, false otherwise
+
+        return edge_labels, (src_train_mask & dst_train_mask)
 
     @staticmethod
     def prepare_graph(graph):
