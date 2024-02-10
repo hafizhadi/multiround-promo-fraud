@@ -229,7 +229,7 @@ class MultiroundExperiment(object):
     
     # Generate negative instances
     def round_generate_negatives(self):
-        return random_duplicate(self.dset['graph'], n_instances=self.train_config['round_neg_count'], return_seed=True)
+        return random_duplicate(self.dset['graph'], n_instances=self.train_config['round_neg_count'], label=0, return_seed=True)
     
     def add_generated_data(self, data):
         new_nodes, new_edges = data
