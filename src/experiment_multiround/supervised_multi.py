@@ -237,7 +237,7 @@ class MultiroundExperiment(object):
         print("Edges", new_edges)
 
         # Add nodes
-        new_nodes['creation_round'] = torch.full([len(new_nodes['label'])], round)
+        new_nodes['creation_round'] = torch.full([len(new_nodes['label'])], self.current_round)
         new_nodes['train_mask'] = torch.full([len(new_nodes['label'])], 0).bool()
         new_nodes['val_mask'] = torch.full([len(new_nodes['label'])], 0).bool()
         new_nodes['test_mask'] = torch.full([len(new_nodes['label'])], 1).bool()
