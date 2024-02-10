@@ -330,7 +330,7 @@ class H2FD(BaseModel):
             graph = dgl.to_heterogeneous(graph, ['none'], ['none'])
 
         # Create new graph with a homogeneous etype containing all edge
-        new_data = {c: graph[c].edges() for c in graph.canonical_etypes}
+        new_data = {c: graph[c].edges() for c in graph.canonical_etypes if c[1] != 'homo'}
         new_data[(graph.canonical_etypes[0][0], 'homo', graph.canonical_etypes[0][0])] = dgl.to_homogeneous(graph).edges()
         new_g = dgl.heterograph(new_data)
 
