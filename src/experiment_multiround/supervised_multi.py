@@ -231,6 +231,25 @@ class MultiroundExperiment(object):
     def round_generate_negatives(self):
         return random_duplicate(self.dset['graph'], n_instances=self.train_config['round_neg_count'], return_seed=True)
     
+    def add_generated_data(self, data):
+        new_nodes, new_edges = data
+        print("Nodes", new_nodes)
+        print("Edges", new_edges)
+
+        # Add nodes
+        new_nodes['creation_round'] = torch.full([len(new_nodes['label'])], round)
+        new_nodes['train_mask'] = torch.full([len(new_nodes['label'])], 0).bool()
+        new_nodes['val_mask'] = torch.full([len(new_nodes['label'])], 0).bool()
+        new_nodes['test_mask'] = torch.full([len(new_nodes['label'])], 1).bool()
+        self.dset['graph'].add_nodes(len(new_nodes['label']), new_nodes)
+        
+        # Add edges
+        for etype in edge_src.keys():        
+            edge_src = new_edges[etype]['src'].long()
+            edge_dst = new_edges[etype]['dst'].long()
+            del new_edges[etype]['src'], new_edges[etype]['dst']        
+            self.dset['graph'].add_edges(edge_src, edge_dst, etype=etype)
+    
     # Execute 1 adver round based on the current state of the experiment
     def adver_round(self, round):
         verPrint(self.verbose, 1, f'Starting round {round}!\n=========')
@@ -253,30 +272,10 @@ class MultiroundExperiment(object):
 
             # Generate additional data for round
             new_adv_nodes, new_adv_edges, adv_seed = self.adversary_round_generate()
+            self.add_generated_data((new_adv_nodes, new_adv_edges))
+            
             new_neg_nodes, new_neg_edges, neg_seed = self.round_generate_negatives()
-            
-            print('new_neg_nodes', new_neg_nodes)
-            print('new_neg_nodes', new_neg_edges)
-            print('new_neg_nodes', neg_seed)
-
-            # Nodes proc
-            new_nodes = {key:torch.cat((new_adv_nodes[key], new_neg_nodes[key]), 0) for key in list(new_adv_nodes.keys()) if key != '_ID'}
-            new_nodes['creation_round'] = torch.full([len(new_nodes['label'])], round)
-            new_nodes['train_mask'] = torch.full([len(new_nodes['label'])], 0).bool()
-            new_nodes['val_mask'] = torch.full([len(new_nodes['label'])], 0).bool()
-            new_nodes['test_mask'] = torch.full([len(new_nodes['label'])], 1).bool()
-            
-            # Edges proc
-            new_neg_edges['src'] = new_neg_edges['src'] + len(new_adv_nodes['label'])
-            new_neg_edges['dst'] = new_neg_edges['dst'] + len(new_adv_nodes['label'])           
-            new_edges = {key:torch.cat((new_adv_edges[key], new_neg_edges[key]), 0) for key in list(new_adv_edges.keys())}
-            edge_src = new_edges['src'].long()
-            edge_dst = new_edges['dst'].long()
-            del new_edges['src'], new_edges['dst']
-
-            # Update graph
-            self.dset['graph'].add_nodes(len(new_nodes['label']), new_nodes)
-            self.dset['graph'].add_edges(edge_src, edge_dst)
+            self.add_generated_data((new_neg_nodes, new_neg_edges))
 
         self.model_round_train(round)
         self.rounds[round]['preds'], self.rounds[round]['probs'], self.rounds[round]['checks'] = self.model_round_predict()
