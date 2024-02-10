@@ -15,9 +15,6 @@ def verPrint(verbose_status, verbose_threshold, msg):
 
 ## Training related
 def hinge_loss(labels, scores):
-    print("Labels", labels)
-    print("Scores", scores)
-
     margin = 1
     ls = labels * scores
     
@@ -50,38 +47,34 @@ def eval_and_print(verbose_level, labels, preds, probs, msg):
     
 ## Graph related
 
-# TODO: Multilayer version
 def random_duplicate(graph, n_instances=1, label=None, return_seed=False):
-    
-    if label == None:
-        pool_ids = torch.LongTensor(range(graph.num_nodes()))
-    else:
-        pool_ids = (graph.ndata['label'] == label).nonzero().flatten()
-        
+    pool_ids = torch.LongTensor(range(graph.num_nodes())) if label == None else (graph.ndata['label'] == label).nonzero().flatten()
     old_ids = pool_ids[random.choice(list(range(len(pool_ids))), size=n_instances, replace=False)]
     new_ids = (torch.tensor(list(range(len(old_ids)))) + graph.num_nodes()).int()
     id_dict = dict(zip(old_ids.tolist(), new_ids.tolist()))
 
-    in_src, in_dst, in_ids = graph.in_edges(old_ids, form='all')
-    out_src, out_dst, out_ids = graph.out_edges(old_ids, form='all')
-
-    in_dst = torch.from_numpy(np.fromiter((id_dict[i] for i in in_dst.tolist()), int))
-    out_src = torch.from_numpy(np.fromiter((id_dict[i] for i in out_src.tolist()), int))
-
-    edge_src = torch.cat((in_src, out_src), 0)
-    edge_dst = torch.cat((in_dst, out_dst), 0)
-    edge_ids = torch.cat((in_ids, out_ids), 0)
-
     new_node_features = { 
         key: graph.ndata[key][old_ids] for key, _v in graph.node_attr_schemes().items() if key != '_ID'
     }
+    
+    new_edge_features = {}
+    for etype in graph.etypes:
+        in_src, in_dst, in_ids = graph.in_edges(old_ids, form='all', etype=etype)
+        out_src, out_dst, out_ids = graph.out_edges(old_ids, form='all', etype=etype)
 
-    new_edge_features = {
-        key: graph.edata[key][edge_ids] for key, _v in graph.edge_attr_schemes().items() if key != '_ID'
-    }
+        in_dst = torch.from_numpy(np.fromiter((id_dict[i] for i in in_dst.tolist()), int))
+        out_src = torch.from_numpy(np.fromiter((id_dict[i] for i in out_src.tolist()), int))
 
-    new_edge_features['src'] = edge_src
-    new_edge_features['dst'] = edge_dst
+        edge_dst = torch.cat((in_dst, out_dst), 0)
+        edge_src = torch.cat((in_src, out_src), 0)
+        edge_ids = torch.cat((in_ids, out_ids), 0)
+
+        new_edge_features[etype] = {
+            key: graph.edges[etype].data[key][edge_ids] for key, _v in graph.edge_attr_schemes(etype).items() if key != '_ID'
+        }
+
+        new_edge_features[etype]['src'] = edge_src
+        new_edge_features[etype]['dst'] = edge_dst
     
     if return_seed:
         return new_node_features, new_edge_features, old_ids

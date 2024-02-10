@@ -255,6 +255,10 @@ class MultiroundExperiment(object):
             new_adv_nodes, new_adv_edges, adv_seed = self.adversary_round_generate()
             new_neg_nodes, new_neg_edges, neg_seed = self.round_generate_negatives()
             
+            print('new_neg_nodes', new_neg_nodes)
+            print('new_neg_nodes', new_neg_edges)
+            print('new_neg_nodes', neg_seed)
+
             # Nodes proc
             new_nodes = {key:torch.cat((new_adv_nodes[key], new_neg_nodes[key]), 0) for key in list(new_adv_nodes.keys()) if key != '_ID'}
             new_nodes['creation_round'] = torch.full([len(new_nodes['label'])], round)

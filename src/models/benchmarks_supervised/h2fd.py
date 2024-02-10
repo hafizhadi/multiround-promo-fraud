@@ -171,8 +171,6 @@ class H2FDMultiRelationLayer(nn.Module):
             edge_train_pos_index = np.random.choice(edge_train_pos_index, size=len(edge_train_neg_index))            
             index = np.concatenate([edge_train_pos_index, edge_train_neg_index])
 
-            verPrint(self.verbose, 3, f'{str(edge_train_score)}')
-            verPrint(self.verbose, 3, f'{str(edge_train_label)}')
             edge_diff_loss = hinge_loss(edge_train_label[index], edge_train_score[index])
 
             # Prototype Loss
