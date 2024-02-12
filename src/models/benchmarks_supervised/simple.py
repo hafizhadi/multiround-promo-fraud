@@ -191,7 +191,7 @@ class GraphSAGE(BaseModel):
                 h = self.dropout(h)
             h = layer(blocks if self.train_mode != 'batch' else blocks[i], h)        
         h = self.mlp(h, False)
-        return h
+        return h, None # No loss returned
     
 ## GIN
 class GIN(nn.Module):
