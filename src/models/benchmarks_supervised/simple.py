@@ -229,7 +229,7 @@ class GIN(BaseModel):
             self.layers.append(dglnn.GINConv(nn.Linear(h_feats, h_feats), activation=self.act, aggregator_type=agg))
         self.layers.append(dglnn.GINConv(nn.Linear(h_feats, num_classes),  activation=None, aggregator_type=agg))
 
-    def forward(self, graph, x):
+    def forward(self, blocks, x):
         h = x
         for i, layer in enumerate(self.layers):
             if i != 0:
