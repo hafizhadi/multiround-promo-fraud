@@ -230,6 +230,15 @@ class GIN(BaseModel):
         self.layers.append(dglnn.GINConv(nn.Linear(h_feats, num_classes),  activation=None, aggregator_type=agg))
 
     def forward(self, blocks, x):
+        """_summary_
+
+        Args:
+            blocks (_type_): _description_
+            x (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         h = x
         for i, layer in enumerate(self.layers):
             if i != 0:
@@ -240,3 +249,56 @@ class GIN(BaseModel):
 
 
 ## GAT
+class GAT(BaseModel):
+    def __init__(
+        self, in_feats, num_classes, h_feats, num_layers, 
+        mlp_h_feats, mlp_num_layers,
+        att_heads, dropout_rate=0, act_name='ReLU',
+        train_mode='normal', verbose=0, **kwargs):
+        """_summary_
+
+        Args:
+            in_feats (_type_): _description_
+            num_classes (_type_): _description_
+            h_feats (_type_): _description_
+            num_layers (_type_): _description_
+            mlp_h_feats (_type_): _description_
+            mlp_num_layers (_type_): _description_
+            att_heads (_type_): _description_
+            dropout_rate (int, optional): _description_. Defaults to 0.
+            act_name (str, optional): _description_. Defaults to 'ReLU'.
+            train_mode (str, optional): _description_. Defaults to 'normal'.
+            verbose (int, optional): _description_. Defaults to 0.
+        """
+        super().__init__()
+        
+        # Set verbosity
+        self.verbose=verbose       
+        verPrint(self.verbose, 3, f'GAT:__init__ | {in_feats} {num_classes} {h_feats} {num_layers} {mlp_h_feats} {mlp_num_layers} {att_heads} {dropout_rate} {act_name} {train_mode}')
+        
+        # Other modules
+        self.act = getattr(nn, act_name)()
+        self.train_mode = train_mode
+        
+        self.layers = nn.ModuleList()
+        self.layers.append(dglnn.GATConv(in_feats, h_feats, att_heads, feat_drop=dropout_rate, attn_drop=dropout_rate, activation=self.act))
+        for i in range(1, num_layers-1):
+            self.layers.append(dglnn.GATConv(h_feats * att_heads, h_feats, att_heads, feat_drop=dropout_rate, attn_drop=dropout_rate, activation=self.act))
+        self.mlp = MLP(h_feats * att_heads, h_feats=mlp_h_feats, num_classes=num_classes, num_layers=mlp_num_layers, dropout_rate=dropout_rate)  
+
+    def forward(self, blocks, x):
+        """_summary_
+
+        Args:
+            blocks (_type_): _description_
+            x (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        h = x
+        for i, layer in enumerate(self.layers):
+            h = layer(blocks if self.train_mode != 'batch' else blocks[i], h)        
+        h = self.mlp(h, False)
+
+        return h, None
