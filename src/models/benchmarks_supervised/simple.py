@@ -135,10 +135,10 @@ class GCN(BaseModel):
 ## GraphSAGE
 class GraphSAGE(BaseModel):
     def __init__(
-            self, in_feats, num_classes, h_feats, num_layers,
-            mlp_h_feats, mlp_num_layers,
-            agg='pool', dropout_rate=0, act_name='ReLU', 
-            train_mode='normal', verbose=0, **kwargs):
+        self, in_feats, num_classes, h_feats, num_layers,
+        mlp_h_feats, mlp_num_layers,
+        agg='pool', dropout_rate=0, act_name='ReLU', 
+        train_mode='normal', verbose=0, **kwargs):
         """_summary_
 
         Args:
@@ -195,24 +195,49 @@ class GraphSAGE(BaseModel):
     
 ## GIN
 class GIN(nn.Module):
-    def __init__(self, in_feats, h_feats=32, num_classes=2, num_layers=2, agg='mean', dropout_rate=0,
-                 activation='ReLU', **kwargs):
+    def __init__(
+        self, in_feats, num_classes, h_feats, num_layers,
+        agg='mean', dropout_rate=0, act_name='ReLU',
+        train_mode='normal', verbose=0, **kwargs):
+        """_summary_
+
+        Args:
+            in_feats (_type_): _description_
+            num_classes (_type_): _description_
+            h_feats (_type_): _description_
+            num_layers (_type_): _description_
+            agg (str, optional): _description_. Defaults to 'mean'.
+            dropout_rate (int, optional): _description_. Defaults to 0.
+            act_name (str, optional): _description_. Defaults to 'ReLU'.
+            train_mode (str, optional): _description_. Defaults to 'normal'.
+            verbose (int, optional): _description_. Defaults to 0.
+        """
         super().__init__()
+        
+        # Set verbosity
+        self.verbose=verbose       
+        verPrint(self.verbose, 3, f'GraphSAGE:__init__ | {in_feats} {num_classes} {h_feats} {num_layers} {agg} {dropout_rate} {act_name} {train_mode}')
+        
+        # Other modules
+        self.act = getattr(nn, act_name)()
+        self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
+        self.train_mode = train_mode
+        
         self.layers = nn.ModuleList()
-        self.act = getattr(nn, activation)()
         self.layers.append(dglnn.GINConv(nn.Linear(in_feats, h_feats), activation=self.act, aggregator_type=agg))
         for i in range(1, num_layers-1):
             self.layers.append(dglnn.GINConv(nn.Linear(h_feats, h_feats), activation=self.act, aggregator_type=agg))
         self.layers.append(dglnn.GINConv(nn.Linear(h_feats, num_classes),  activation=None, aggregator_type=agg))
-        self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
 
-    def forward(self, graph):
-        h = graph.ndata['feature']
+    def forward(self, graph, x):
+        h = x
         for i, layer in enumerate(self.layers):
             if i != 0:
                 h = self.dropout(h)
-            h = layer(graph, h)
-        return h
+            h = layer(blocks if self.train_mode != 'batch' else blocks[i], h)        
+        h = self.mlp(h, False)
+        
+        return h, None
 
 
 ## GAT
