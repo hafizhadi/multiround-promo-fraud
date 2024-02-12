@@ -194,7 +194,7 @@ class GraphSAGE(BaseModel):
         return h, None # No loss returned
     
 ## GIN
-class GIN(nn.Module):
+class GIN(BaseModel):
     def __init__(
         self, in_feats, num_classes, h_feats, num_layers,
         agg='mean', dropout_rate=0, act_name='ReLU',
