@@ -104,12 +104,9 @@ class GCN(BaseModel):
         
         # Layers
         self.layers = nn.ModuleList()
-        if num_layers == 0:
-            return
-        else:
-            self.layers.append(dglnn.GraphConv(in_feats, h_feats, activation=self.act))
-            for i in range(num_layers-1):
-                self.layers.append(dglnn.GraphConv(h_feats, h_feats, activation=self.act))
+        self.layers.append(dglnn.GraphConv(in_feats, h_feats, activation=self.act))
+        for i in range(num_layers-1):
+            self.layers.append(dglnn.GraphConv(h_feats, h_feats, activation=self.act))
         self.mlp = MLP(h_feats, h_feats=mlp_h_feats, num_classes=num_classes, num_layers=mlp_num_layers, dropout_rate=dropout_rate)  
 
     def forward(self, blocks, x):
@@ -133,6 +130,89 @@ class GCN(BaseModel):
         return h, None # No loss returned
     
 ## GCN V2
+ 
+
 ## GraphSAGE
+class GraphSAGE(BaseModel):
+    def __init__(
+            self, in_feats, num_classes, h_feats, num_layers,
+            mlp_h_feats, mlp_num_layers,
+            agg='pool', dropout_rate=0, act_name='ReLU', 
+            train_mode='normal', verbose=0, **kwargs):
+        """_summary_
+
+        Args:
+            in_feats (_type_): _description_
+            num_classes (_type_): _description_
+            h_feats (_type_): _description_
+            num_layers (_type_): _description_
+            mlp_h_feats (_type_): _description_
+            mlp_num_layers (_type_): _description_
+            agg (str, optional): _description_. Defaults to 'pool'.
+            dropout_rate (int, optional): _description_. Defaults to 0.
+            act_name (str, optional): _description_. Defaults to 'ReLU'.
+            train_mode (str, optional): _description_. Defaults to 'normal'.
+            verbose (int, optional): _description_. Defaults to 0.
+        """
+        super().__init__()
+        
+        # Set verbosity
+        self.verbose=verbose       
+        verPrint(self.verbose, 3, f'GraphSAGE:__init__ | {in_feats} {num_classes} {h_feats} {num_layers} {agg} {dropout_rate} {act_name} {train_mode}')
+        
+        # Other modules
+        self.act = getattr(nn, act_name)()
+        self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
+        self.train_mode = train_mode
+
+        # Layers
+        self.layers = nn.ModuleList()
+        self.layers.append(dglnn.SAGEConv(in_feats, h_feats, agg, activation=self.act))
+        for i in range(num_layers-1):
+            self.layers.append(dglnn.SAGEConv(h_feats, h_feats, agg, activation=self.act))
+        self.mlp = MLP(h_feats, h_feats=mlp_h_feats, num_classes=num_classes, num_layers=mlp_num_layers, dropout_rate=dropout_rate)  
+
+
+    def forward(self, blocks, x):
+        """_summary_
+
+        Args:
+            blocks (_type_): _description_
+            x (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        verPrint(self.verbose, 3, f'GraphSAGE:forward | {blocks} {x}')
+
+        h = x
+        for i, layer in enumerate(self.layers):
+            if i != 0:
+                h = self.dropout(h)
+            h = layer(blocks if self.train_mode != 'batch' else blocks[i], h)        
+        h = self.mlp(h, False)
+        return h
+    
 ## GIN
+class GIN(nn.Module):
+    def __init__(self, in_feats, h_feats=32, num_classes=2, num_layers=2, agg='mean', dropout_rate=0,
+                 activation='ReLU', **kwargs):
+        super().__init__()
+        self.layers = nn.ModuleList()
+        self.act = getattr(nn, activation)()
+        self.layers.append(dglnn.GINConv(nn.Linear(in_feats, h_feats), activation=self.act, aggregator_type=agg))
+        for i in range(1, num_layers-1):
+            self.layers.append(dglnn.GINConv(nn.Linear(h_feats, h_feats), activation=self.act, aggregator_type=agg))
+        self.layers.append(dglnn.GINConv(nn.Linear(h_feats, num_classes),  activation=None, aggregator_type=agg))
+        self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
+
+    def forward(self, graph):
+        h = graph.ndata['feature']
+        for i, layer in enumerate(self.layers):
+            if i != 0:
+                h = self.dropout(h)
+            h = layer(graph, h)
+        return h
+
+
 ## GAT
