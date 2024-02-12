@@ -233,8 +233,6 @@ class MultiroundExperiment(object):
     
     def add_generated_data(self, data):
         new_nodes, new_edges = data
-        print("Nodes", new_nodes)
-        print("Edges", new_edges)
 
         # Add nodes
         new_nodes['creation_round'] = torch.full([len(new_nodes['label'])], self.current_round)
