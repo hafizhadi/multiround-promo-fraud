@@ -235,7 +235,6 @@ class GIN(BaseModel):
             if i != 0:
                 h = self.dropout(h)
             h = layer(blocks if self.train_mode != 'batch' else blocks[i], h)        
-        h = self.mlp(h, False)
         
         return h, None
 
