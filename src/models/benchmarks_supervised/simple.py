@@ -284,7 +284,7 @@ class GAT(BaseModel):
         self.layers.append(dglnn.GATConv(in_feats, h_feats, att_heads, feat_drop=dropout_rate, attn_drop=dropout_rate, activation=self.act))
         for i in range(1, num_layers-1):
             self.layers.append(dglnn.GATConv(h_feats * att_heads, h_feats, att_heads, feat_drop=dropout_rate, attn_drop=dropout_rate, activation=self.act))
-        self.mlp = MLP(h_feats * att_heads, h_feats=mlp_h_feats, num_classes=num_classes, num_layers=mlp_num_layers, dropout_rate=dropout_rate)  
+        self.mlp = MLP(h_feats, h_feats=mlp_h_feats, num_classes=num_classes, num_layers=mlp_num_layers, dropout_rate=dropout_rate)  
 
     def forward(self, blocks, x):
         """_summary_
@@ -298,7 +298,12 @@ class GAT(BaseModel):
         """
         h = x
         for i, layer in enumerate(self.layers):
-            h = layer(blocks if self.train_mode != 'batch' else blocks[i], h)        
+            h = layer(blocks if self.train_mode != 'batch' else blocks[i], h)
+            if i != (len(self.layers) - 1):  # Not last layer
+                h = h.flatten(1)     
+            else:
+                h = h.mean(1)
+
         h = self.mlp(h, False)
 
         return h, None
