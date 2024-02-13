@@ -7,11 +7,15 @@ from adversarial.adversarial import BaseAdversary
 from utils_func import random_duplicate, verPrint
 
 class ReplayAdversary(BaseAdversary):
-    def __init__(self, **kwargs):
+    def __init__(self, verbose=0**kwargs):
         super().__init__()
-        return
+
+        # Set verbosity
+        self.verbose=verbose       
+        verPrint(self.verbose, 3, f'ReplayAdversary:__init__')
     
     def generate(self, graph, n_instances=1, return_ids=False, is_random=True, **kwargs):
+        verPrint(self.verbose, 3, f'ReplayAdversary:generate | {n_instances} {return_ids}')
         return random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids)
     
 class PerturbationAdversary(BaseAdversary):
