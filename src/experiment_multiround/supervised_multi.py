@@ -14,18 +14,15 @@ class MultiroundExperiment(object):
     ## Class Methods
     def __init__(self, model_config, adver_config, train_config, graph):
         model_config['train_mode'] = train_config['train_mode']
-        model_config['etypes'] = ['none'] if graph.is_homogeneous else graph.etypes
-
         adver_config['train_mode'] = train_config['train_mode']
 
+        model_config['etypes'] = ['none'] if graph.is_homogeneous else graph.etypes
+
         self.verbose = train_config['verbose']
-        self.dset = { 'graph': graph}
+        self.dset = { 'graph': graph }
         self.model_config = model_config
         self.adver_config = adver_config
         self.train_config = train_config      
-
-        features = self.dset['graph'].ndata['feature']
-        labels = self.dset['graph'].ndata['label']
 
         self.init_model()
         self.init_adversarial()
@@ -33,7 +30,7 @@ class MultiroundExperiment(object):
         # Initialize round information
         self.current_round = 0
         self.rounds = []
-        self.dset['graph'].ndata['creation_round'] = torch.full([len(labels)], 0, dtype=torch.long)
+        self.dset['graph'].ndata['creation_round'] = torch.full([graph.num_nodes()], 0, dtype=torch.long)
     
     # Initialize model
     def init_model(self):
