@@ -65,6 +65,7 @@ def random_duplicate(graph, n_instances=1, label=None, return_ids=False):
         in_dst = torch.from_numpy(np.fromiter((id_dict[i] for i in in_dst.tolist()), int))
         out_src = torch.from_numpy(np.fromiter((id_dict[i] for i in out_src.tolist()), int))
 
+        new_edge_features[etype] = {}
         new_edge_features[etype]['in'] = { key: graph.edges[etype].data[key][in_ids] for key, _v in graph.edge_attr_schemes(etype).items() if key != '_ID' }
         new_edge_features[etype]['in']['src'] = in_src
         new_edge_features[etype]['in']['dst'] = in_dst
