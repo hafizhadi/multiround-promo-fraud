@@ -46,7 +46,6 @@ def eval_and_print(verbose_level, labels, preds, probs, msg):
     return (rec, prec, f1, auc)
     
 ## Graph related
-
 def random_duplicate(graph, n_instances=1, label=None, return_ids=False):
     pool_ids = torch.LongTensor(range(graph.num_nodes())) if label == None else (graph.ndata['label'] == label).nonzero().flatten()
     old_ids = pool_ids[random.choice(list(range(len(pool_ids))), size=n_instances, replace=False)]
