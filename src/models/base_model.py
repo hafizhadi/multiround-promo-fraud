@@ -3,10 +3,9 @@ from torch import nn
 
 class BaseModel(nn.Module):
     def __init__(self, verbose=0, **kwargs):
-        # Set verbosity
+        super().__init__()
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'GCN:__init__ | {kwargs}')
-        super().__init__()
 
     def forward(self, blocks, x):
         verPrint(self.verbose, 3, f'GCN:forward | {blocks} {x}')

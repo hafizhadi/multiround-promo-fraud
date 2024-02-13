@@ -22,10 +22,9 @@ class H2FDRelationAware(nn.Module):
             dropout_rate (int, optional): _description_. Defaults to 0.
             verbose (int, optional): _description_. Defaults to 0.
         """
-        # Set verbosity
+        super().__init__()
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'H2FDRelationAware:__init__ | {in_feats} {h_feats} {dropout_rate} {kwargs}')
-        super().__init__()
         
         self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else nn.Identity()
         
@@ -131,8 +130,6 @@ class H2FDMultiRelationLayer(nn.Module):
             verbose (int, optional): _description_. Defaults to 0.
         """
         super().__init__()
-
-        # Set verbosity
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'H2FDMultiRelationLayer:__init__ | {in_feats} {h_feats} {att_heads} {relations} {att_heads} {dropout_rate} {kwargs}')
 
@@ -226,8 +223,6 @@ class H2FD(BaseModel):
             dropout_rate (float, optional): _description_. Defaults to 0.1.
         """
         super().__init__()
-
-        # Set verbosity
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'H2FD:__init__ | {in_feats} {num_classes} {etypes} {n_layer} {intra_dim} {gamma1} {gamma2} {att_heads} {dropout_rate} {kwargs}')
 

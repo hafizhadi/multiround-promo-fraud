@@ -27,8 +27,6 @@ class MLP(nn.Module):
             verbose (int, optional): _description_. Defaults to 0.
         """
         super().__init__()
-        
-        # Set verbosity
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'MLP:__init__ | {in_feats} {num_classes} {h_feats} {num_layers} {dropout_rate} {activation} {kwargs}')
 
@@ -92,8 +90,6 @@ class GCN(BaseModel):
             verbose (int, optional): _description_. Defaults to 0.
         """
         super().__init__()
-
-        # Set verbosity
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'GCN:__init__ | {in_feats} {num_classes} {h_feats} {num_layers} {mlp_h_feats} {mlp_num_layers} {dropout_rate} {act_name} {train_mode}')
         
@@ -155,8 +151,6 @@ class GraphSAGE(BaseModel):
             verbose (int, optional): _description_. Defaults to 0.
         """
         super().__init__()
-        
-        # Set verbosity
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'GraphSAGE:__init__ | {in_feats} {num_classes} {h_feats} {num_layers} {agg} {dropout_rate} {act_name} {train_mode}')
         
@@ -213,8 +207,6 @@ class GIN(BaseModel):
             verbose (int, optional): _description_. Defaults to 0.
         """
         super().__init__()
-        
-        # Set verbosity
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'GraphSAGE:__init__ | {in_feats} {num_classes} {h_feats} {num_layers} {agg} {dropout_rate} {act_name} {train_mode}')
         
@@ -271,8 +263,6 @@ class GAT(BaseModel):
             verbose (int, optional): _description_. Defaults to 0.
         """
         super().__init__()
-        
-        # Set verbosity
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'GAT:__init__ | {in_feats} {num_classes} {h_feats} {num_layers} {mlp_h_feats} {mlp_num_layers} {att_heads} {dropout_rate} {act_name} {train_mode}')
         

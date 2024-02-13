@@ -4,25 +4,21 @@ import numpy as np
 from numpy import random
 from collections import Counter
 from adversarial.adversarial import BaseAdversary
-from utils_func import random_duplicate, verPrint
+from utils_func import verPrint
 
 class ReplayAdversary(BaseAdversary):
     def __init__(self, verbose=0, **kwargs):
         super().__init__()
-
-        # Set verbosity
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'ReplayAdversary:__init__')
     
     def generate(self, graph, n_instances=1, return_ids=False, is_random=True, **kwargs):
         verPrint(self.verbose, 3, f'ReplayAdversary:generate | {n_instances} {return_ids}')
-        return random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids)
+        return BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids)
     
 class PerturbationAdversary(BaseAdversary):
     def __init__(self, feat_budget, conn_budget, verbose=0, **kwargs):
         super().__init__()
-
-        # Set verbosity
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'PerturbationAdversary:__init__ | {feat_budget} {conn_budget}')
         
@@ -33,10 +29,10 @@ class PerturbationAdversary(BaseAdversary):
     def generate(self, graph, n_instances=1, return_ids=False, is_random=True, **kwargs):
         verPrint(self.verbose, 3, f'PerturbationAdversary:generate | {n_instances} {return_ids}')
 
-        replay_node, replay_edge, old_ids, new_ids =  random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids)
+        replay_node, replay_edge, old_ids, new_ids =  BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids)
 
         ## FEATURE PERTURBATION ##
-        verPrint(self.verbose, 2, f'Perturbing feature...')
+        verPrint(self.verbose, 2, f'Perturbing feature with budget {self.feat_budget}...')
 
         feats = replay_node['feature'].clone()
         perturb_weight = torch.rand(feats.shape)
@@ -46,26 +42,24 @@ class PerturbationAdversary(BaseAdversary):
         replay_node['feature'] = feats + perturb_final
 
         ## STRUCTURAL PERTURBATION ##
-        verPrint(self.verbose, 2, f'Perturbing structure...')
+        verPrint(self.verbose, 2, f'Perturbing structure with budget {self.conn_budget}...')
 
         # TODO: WORK ON DIRECTED VERSION
         if sum([(sorted(replay_edge[etype]['in']['src']) != sorted(replay_edge[etype]['out']['dst'])) and 
                 (sorted(replay_edge[etype]['in']['dst']) == sorted(replay_edge[etype]['out']['src'])) 
                 for etype in replay_edge.keys()]) == 0: # Check if graph undirected (same edges for ingoing and outgoing)
 
-            # Split budget over edge relations
-            rel_count = len(graph.etypes)
+            # Split budget over all edge relations
+            rels = [r for r in graph.etypes if r != 'homo'] # Exception for H2F
             rounding_error = 1
             while rounding_error != 0:
-                perturb_weight = torch.rand((1, rel_count))
+                perturb_weight = torch.rand((1, len(rels)))
                 perturb_weight = perturb_weight / perturb_weight.sum(dim=1).unsqueeze(1)
                 rel_budgets = (perturb_weight * self.conn_budget).round().long()
                 rounding_error = rel_budgets.sum() - self.conn_budget
             
-            verPrint(self.verbose, 2, f'Budget per relation: {rel_budgets}')
-
             # Iterate over relation type
-            for idx, val in enumerate(graph.etypes):
+            for idx, val in enumerate(rels):
                 rel_budget = rel_budgets[idx]
                 verPrint(self.verbose, 2, f'Perturbing structure for relation {val} with budget {rel_budget}')
 

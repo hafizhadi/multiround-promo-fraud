@@ -1,6 +1,3 @@
-from utils_func import verPrint, random_duplicate, get_best_f1, eval_and_print
-from utils_const import model_dict, adversarial_dict
-
 import dgl
 import torch
 
@@ -8,6 +5,11 @@ import time, psutil, os
 import numpy as np
 import torch.nn.functional as F
 from sklearn.model_selection import train_test_split
+
+from adversarial.adversarial import BaseAdversary
+
+from utils_func import verPrint, get_best_f1, eval_and_print
+from utils_const import model_dict, adversarial_dict
 
 ### MULTIROUND EXPERIMENT CLASS ###
 class MultiroundExperiment(object):
@@ -224,7 +226,7 @@ class MultiroundExperiment(object):
     
     # Generate negative instances
     def round_generate_negatives(self):
-        return random_duplicate(self.dset['graph'], n_instances=self.train_config['round_neg_count'], label=0, return_ids=True)
+        return BaseAdversary.random_duplicate(self.dset['graph'], n_instances=self.train_config['round_neg_count'], label=0, return_ids=True)
     
     def add_generated_data(self, data):
         new_nodes, new_edges = data

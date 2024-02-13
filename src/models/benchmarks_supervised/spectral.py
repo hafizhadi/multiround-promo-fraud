@@ -58,8 +58,6 @@ class BWGNN(BaseModel):
             verbose (int, optional): _description_. Defaults to 0.
         """
         super().__init__()
-
-        # Set verbosity
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'BWGNN:__init__ | {in_feats} {num_classes} {h_feats} {num_layers} {mlp_num_layers} {dropout_rate} {act_name} {kwargs}')
 
