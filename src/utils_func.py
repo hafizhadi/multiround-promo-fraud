@@ -71,8 +71,8 @@ def random_duplicate(graph, n_instances=1, label=None, return_ids=False):
         new_edge_features[etype]['in']['dst'] = in_dst
 
         new_edge_features[etype]['out'] = { key: graph.edges[etype].data[key][out_ids] for key, _v in graph.edge_attr_schemes(etype).items() if key != '_ID' }
-        new_edge_features[etype]['in']['out'] = out_src
-        new_edge_features[etype]['in']['out'] = out_dst
+        new_edge_features[etype]['out']['src'] = out_src
+        new_edge_features[etype]['out']['dst'] = out_dst
     
     if return_ids:
         return new_node_features, new_edge_features, old_ids, new_ids
