@@ -242,7 +242,9 @@ class MultiroundExperiment(object):
         self.dset['graph'].add_nodes(len(new_nodes['label']), new_nodes)
         
         # Add edges
+        print("New edges", new_edges)
         for edges in new_edges.values(): # Incoming and outcoming edges
+            print("edges", edges)
             for etype in edges.keys():        
                 edge_src = edges[etype]['src'].long()
                 edge_dst = edges[etype]['dst'].long()
