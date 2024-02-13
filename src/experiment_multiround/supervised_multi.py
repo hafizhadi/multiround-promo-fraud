@@ -241,14 +241,12 @@ class MultiroundExperiment(object):
         new_nodes['test_mask'] = torch.full([len(new_nodes['label'])], 1).bool()
         self.dset['graph'].add_nodes(len(new_nodes['label']), new_nodes)
         
-        # Add edges
-        print("New edges", new_edges)
-        for edges in new_edges.values(): # Incoming and outcoming edges
-            print("edges", edges)
-            for etype in edges.keys():        
-                edge_src = edges[etype]['src'].long()
-                edge_dst = edges[etype]['dst'].long()
-                del edges[etype]['src'], edges[etype]['dst']        
+        # Add edges TODO: edge features?
+        for etype in new_edges.keys():        
+            for dir in new_edges[etype].keys(): # Incoming and outcoming edges
+                edge_src = new_edges[etype][dir]['src'].long()
+                edge_dst = new_edges[etype][dir]['dst'].long()
+                del new_edges[etype][dir]['src'], new_edges[etype][dir]['dst']        
                 self.dset['graph'].add_edges(edge_src, edge_dst, etype=etype)
     
     # Execute 1 adver round based on the current state of the experiment
