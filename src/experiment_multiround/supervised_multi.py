@@ -12,13 +12,13 @@ from sklearn.model_selection import train_test_split
 ### MULTIROUND EXPERIMENT CLASS ###
 class MultiroundExperiment(object):
     ## Class Methods
-    def __init__(self, model_config, adver_config, train_config, graph, verbose=0):
+    def __init__(self, model_config, adver_config, train_config, graph):
         model_config['train_mode'] = train_config['train_mode']
         model_config['etypes'] = ['none'] if graph.is_homogeneous else graph.etypes
 
         adver_config['train_mode'] = train_config['train_mode']
 
-        self.verbose=verbose
+        self.verbose = train_config.verbose
         self.dset = { 'graph': graph}
         self.model_config = model_config
         self.adver_config = adver_config
@@ -27,7 +27,7 @@ class MultiroundExperiment(object):
         features = self.dset['graph'].ndata['feature']
         labels = self.dset['graph'].ndata['label']
 
-        self.init_model()
+        self.init_model()train
         self.init_adversarial()
 
         # Initialize round information
@@ -39,7 +39,7 @@ class MultiroundExperiment(object):
     def init_model(self):
         in_dimension = self.dset['graph'].ndata['feature'].shape[1]
         class_num =  self.dset['graph'].ndata['label'].unique(return_counts=True)[0].shape[0]
-        self.model = model_dict[self.model_config['model_name']](in_dimension, class_num, verbose=self.verbose, **self.model_config)
+        self.model = model_dict[self.model_config['model_name']](in_dimension, class_num, **self.model_config)
         if self.train_config['train_mode'] == 'batch':
             self.model.cuda()
     
