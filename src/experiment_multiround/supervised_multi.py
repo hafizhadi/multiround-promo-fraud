@@ -225,11 +225,11 @@ class MultiroundExperiment(object):
 
     # adver generation of new positive instances
     def adversary_round_generate(self):
-        return self.adver.generate(self.dset['graph'], n_instances=self.train_config['round_pos_count'], return_seed=True)
+        return self.adver.generate(self.dset['graph'], n_instances=self.train_config['round_pos_count'], return_ids=True)
     
     # Generate negative instances
     def round_generate_negatives(self):
-        return random_duplicate(self.dset['graph'], n_instances=self.train_config['round_neg_count'], label=0, return_seed=True)
+        return random_duplicate(self.dset['graph'], n_instances=self.train_config['round_neg_count'], label=0, return_ids=True)
     
     def add_generated_data(self, data):
         new_nodes, new_edges = data
@@ -242,11 +242,12 @@ class MultiroundExperiment(object):
         self.dset['graph'].add_nodes(len(new_nodes['label']), new_nodes)
         
         # Add edges
-        for etype in new_edges.keys():        
-            edge_src = new_edges[etype]['src'].long()
-            edge_dst = new_edges[etype]['dst'].long()
-            del new_edges[etype]['src'], new_edges[etype]['dst']        
-            self.dset['graph'].add_edges(edge_src, edge_dst, etype=etype)
+        for edges in new_edges.values(): # Incoming and outcoming edges
+            for etype in edges.keys():        
+                edge_src = edges[etype]['src'].long()
+                edge_dst = edges[etype]['dst'].long()
+                del edges[etype]['src'], edges[etype]['dst']        
+                self.dset['graph'].add_edges(edge_src, edge_dst, etype=etype)
     
     # Execute 1 adver round based on the current state of the experiment
     def adver_round(self, round):
@@ -269,10 +270,10 @@ class MultiroundExperiment(object):
             # TODO: self.adversary_round_train(round)
 
             # Generate additional data for round
-            new_adv_nodes, new_adv_edges, adv_seed = self.adversary_round_generate()
+            new_adv_nodes, new_adv_edges, adv_seed, _ = self.adversary_round_generate()
             self.add_generated_data((new_adv_nodes, new_adv_edges))
             
-            new_neg_nodes, new_neg_edges, neg_seed = self.round_generate_negatives()
+            new_neg_nodes, new_neg_edges, neg_seed, _ = self.round_generate_negatives()
             self.add_generated_data((new_neg_nodes, new_neg_edges))
 
         self.model_round_train(round)

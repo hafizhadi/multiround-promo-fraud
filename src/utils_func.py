@@ -47,7 +47,7 @@ def eval_and_print(verbose_level, labels, preds, probs, msg):
     
 ## Graph related
 
-def random_duplicate(graph, n_instances=1, label=None, return_seed=False):
+def random_duplicate(graph, n_instances=1, label=None, return_ids=False):
     pool_ids = torch.LongTensor(range(graph.num_nodes())) if label == None else (graph.ndata['label'] == label).nonzero().flatten()
     old_ids = pool_ids[random.choice(list(range(len(pool_ids))), size=n_instances, replace=False)]
     new_ids = (torch.tensor(list(range(len(old_ids)))) + graph.num_nodes()).int()
@@ -65,18 +65,15 @@ def random_duplicate(graph, n_instances=1, label=None, return_seed=False):
         in_dst = torch.from_numpy(np.fromiter((id_dict[i] for i in in_dst.tolist()), int))
         out_src = torch.from_numpy(np.fromiter((id_dict[i] for i in out_src.tolist()), int))
 
-        edge_dst = torch.cat((in_dst, out_dst), 0)
-        edge_src = torch.cat((in_src, out_src), 0)
-        edge_ids = torch.cat((in_ids, out_ids), 0)
+        new_edge_features[etype]['in'] = { key: graph.edges[etype].data[key][in_ids] for key, _v in graph.edge_attr_schemes(etype).items() if key != '_ID' }
+        new_edge_features[etype]['in']['src'] = in_src
+        new_edge_features[etype]['in']['dst'] = in_dst
 
-        new_edge_features[etype] = {
-            key: graph.edges[etype].data[key][edge_ids] for key, _v in graph.edge_attr_schemes(etype).items() if key != '_ID'
-        }
-
-        new_edge_features[etype]['src'] = edge_src
-        new_edge_features[etype]['dst'] = edge_dst
+        new_edge_features[etype]['out'] = { key: graph.edges[etype].data[key][out_ids] for key, _v in graph.edge_attr_schemes(etype).items() if key != '_ID' }
+        new_edge_features[etype]['in']['out'] = out_src
+        new_edge_features[etype]['in']['out'] = out_dst
     
-    if return_seed:
-        return new_node_features, new_edge_features, old_ids
+    if return_ids:
+        return new_node_features, new_edge_features, old_ids, new_ids
     else:
-        return new_node_features, new_edge_features
+        return new_node_features, new_edge_features, None, None
