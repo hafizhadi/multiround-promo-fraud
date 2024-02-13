@@ -27,7 +27,7 @@ class MultiroundExperiment(object):
         features = self.dset['graph'].ndata['feature']
         labels = self.dset['graph'].ndata['label']
 
-        self.init_model()train
+        self.init_model()
         self.init_adversarial()
 
         # Initialize round information
