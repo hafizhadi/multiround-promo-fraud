@@ -45,7 +45,7 @@ class MultiroundExperiment(object):
     
     # Initialize adversarial
     def init_adversarial(self):
-        self.adver = adversarial_dict[self.adver_config['adver_name']]()
+        self.adver = adversarial_dict[self.adver_config['adver_name']](**self.adver_config)
 
     # Split train test
     def split_train_test(self, round, all_data=True):
