@@ -13,23 +13,21 @@ from sklearn.model_selection import train_test_split
 class MultiroundExperiment(object):
     ## Class Methods
     def __init__(self, model_config, adver_config, train_config, graph):
+        # Attributes
         model_config['train_mode'] = train_config['train_mode']
         adver_config['train_mode'] = train_config['train_mode']
-
         model_config['etypes'] = ['none'] if graph.is_homogeneous else graph.etypes
 
         self.verbose = train_config['verbose']
         self.dset = { 'graph': graph }
-        self.model_config = model_config
-        self.adver_config = adver_config
-        self.train_config = train_config      
+        self.model_config, self.adver_config, self.train_config  = model_config, adver_config, train_config
 
+        # Model & Adversary
         self.init_model()
         self.init_adversarial()
 
         # Initialize round information
-        self.current_round = 0
-        self.rounds = []
+        self.current_round, self.rounds = 0, []
         self.dset['graph'].ndata['creation_round'] = torch.full([graph.num_nodes()], 0, dtype=torch.long)
     
     # Initialize model
