@@ -36,7 +36,7 @@ class PerturbationAdversary(BaseAdversary):
         # TODO: WORK ON DIRECTED VERSION
         if sum([(sorted(replay_edge[etype]['in']['src']) != sorted(replay_edge[etype]['out']['dst'])) and 
                 (sorted(replay_edge[etype]['in']['dst']) == sorted(replay_edge[etype]['out']['src'])) 
-                for etype in b.keys()]) == 0: # Check if graph undirected (same edges for ingoing and outgoing)
+                for etype in replay_edge.keys()]) == 0: # Check if graph undirected (same edges for ingoing and outgoing)
 
             # Split budget over edge relations
             ren_count = len(graph.etypes)
