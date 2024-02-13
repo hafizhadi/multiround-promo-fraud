@@ -54,13 +54,13 @@ class PerturbationAdversary(BaseAdversary):
                 for etype in replay_edge.keys()]) == 0: # Check if graph undirected (same edges for ingoing and outgoing)
 
             # Split budget over edge relations
-            ren_count = len(graph.etypes)
+            rel_count = len(graph.etypes)
             rounding_error = 1
             while rounding_error != 0:
-                perturb_weight = torch.rand((1, ren_count))
+                perturb_weight = torch.rand((1, rel_count))
                 perturb_weight = perturb_weight / perturb_weight.sum(dim=1).unsqueeze(1)
                 rel_budgets = (perturb_weight * self.conn_budget).round().long()
-                rounding_error = rel_budgets.sum() - ren_count
+                rounding_error = rel_budgets.sum() - self.conn_budget
             
             verPrint(self.verbose, 2, f'Budget per relation: {rel_budgets}')
 
