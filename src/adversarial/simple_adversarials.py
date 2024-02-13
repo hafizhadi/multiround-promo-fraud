@@ -7,7 +7,7 @@ from adversarial.adversarial import BaseAdversary
 from utils_func import random_duplicate, verPrint
 
 class ReplayAdversary(BaseAdversary):
-    def __init__(self, verbose=0**kwargs):
+    def __init__(self, verbose=0, **kwargs):
         super().__init__()
 
         # Set verbosity
