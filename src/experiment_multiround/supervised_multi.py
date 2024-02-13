@@ -270,9 +270,11 @@ class MultiroundExperiment(object):
             # TODO: self.adversary_round_train(round)
 
             # Generate additional data for round
+            verPrint(self.verbose, 2, f'Generating additional positive data from adversary...')
             new_adv_nodes, new_adv_edges, adv_seed, _ = self.adversary_round_generate()
             self.add_generated_data((new_adv_nodes, new_adv_edges))
             
+            verPrint(self.verbose, 2, f'Generating additional negative data by duplicating random nodes...')
             new_neg_nodes, new_neg_edges, neg_seed, _ = self.round_generate_negatives()
             self.add_generated_data((new_neg_nodes, new_neg_edges))
 
