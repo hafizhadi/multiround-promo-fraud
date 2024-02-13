@@ -4,7 +4,7 @@ import numpy as np
 from numpy import random
 from collections import Counter
 from adversarial.adversarial import BaseAdversary
-from utils_func import random_duplicate
+from utils_func import random_duplicate, verPrint
 
 class ReplayAdversary(BaseAdversary):
     def __init__(self, **kwargs):
@@ -15,16 +15,25 @@ class ReplayAdversary(BaseAdversary):
         return random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids)
     
 class PerturbationAdversary(BaseAdversary):
-    def __init__(self, feat_budget, conn_budget, **kwargs):
+    def __init__(self, feat_budget, conn_budget, verbose=0, **kwargs):
         super().__init__()
+
+        # Set verbosity
+        self.verbose=verbose       
+        verPrint(self.verbose, 3, f'PerturbationAdversary:__init__ | {feat_budget} {conn_budget}')
+        
 
         self.feat_budget = feat_budget
         self.conn_budget = conn_budget
     
     def generate(self, graph, n_instances=1, return_ids=False, is_random=True, **kwargs):
+        verPrint(self.verbose, 3, f'PerturbationAdversary:generate | {n_instances} {return_ids}')
+
         replay_node, replay_edge, old_ids, new_ids =  random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids)
 
         ## FEATURE PERTURBATION ##
+        verPrint(self.verbose, 2, f'Perturbing feature...')
+
         feats = replay_node['feature'].clone()
         perturb_weight = torch.rand(feats.shape)
         perturb_weight = perturb_weight / perturb_weight.sum(dim=1).unsqueeze(1) # This is the distribution for the noise over the entire feature dimension for each node
@@ -33,6 +42,8 @@ class PerturbationAdversary(BaseAdversary):
         replay_node['feature'] = feats + perturb_final
 
         ## STRUCTURAL PERTURBATION ##
+        verPrint(self.verbose, 2, f'Perturbing structure...')
+
         # TODO: WORK ON DIRECTED VERSION
         if sum([(sorted(replay_edge[etype]['in']['src']) != sorted(replay_edge[etype]['out']['dst'])) and 
                 (sorted(replay_edge[etype]['in']['dst']) == sorted(replay_edge[etype]['out']['src'])) 
@@ -47,9 +58,12 @@ class PerturbationAdversary(BaseAdversary):
                 rel_budgets = (perturb_weight * self.conn_budget).round().long()
                 rounding_error = rel_budgets.sum() - ren_count
             
+            verPrint(self.verbose, 2, f'Budget per relation: {rel_budgets}')
+
             # Iterate over relation type
             for idx, val in enumerate(graph.etypes):
                 rel_budget = rel_budgets[idx]
+                verPrint(self.verbose, 2, f'Perturbing structure for relation {val} with budget {rel_budget}')
 
                 # Get randomized perturbation amount based on the max budget
                 counter = dict(Counter(replay_edge[val]['in']['dst'].tolist()))
