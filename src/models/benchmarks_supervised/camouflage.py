@@ -33,10 +33,11 @@ class CAREConv(nn.Module):
     def _calc_distance(self, edges):
         # formula 2
         print("src", edges.src['h'].shape)
-        print("dst", edges.dst['h'].shape)
 
         d = torch.norm(torch.tanh(self.MLP(edges.src["h"]))
             - torch.tanh(self.MLP(edges.dst["h"])), 1, 1,)
+
+        print("dst", edges.dst['h'].shape)
         return {"d": d}
 
     def _top_p_sampling(self, graph, p):
@@ -99,7 +100,7 @@ class CAREConv(nn.Module):
             if self.activation is not None:
                 h_homo = self.activation(h_homo)
 
-            return self.linear(h_homo), None
+            return self.linear(h_homo), None # TODO: Mismatch dim still happens
 
 
 class CAREGNN(BaseModel):
