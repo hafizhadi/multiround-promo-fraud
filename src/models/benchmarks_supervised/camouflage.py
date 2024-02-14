@@ -32,7 +32,9 @@ class CAREConv(nn.Module):
 
     def _calc_distance(self, edges):
         # formula 2
-        print(edges.src['h'])
+        print("src", edges.src['h'].shape)
+        print("dst", edges.dst['h'].shape)
+
         d = torch.norm(torch.tanh(self.MLP(edges.src["h"]))
             - torch.tanh(self.MLP(edges.dst["h"])), 1, 1,)
         return {"d": d}
