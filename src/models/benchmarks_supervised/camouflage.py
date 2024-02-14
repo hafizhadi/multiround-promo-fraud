@@ -44,7 +44,7 @@ class CAREConv(nn.Module):
         dist = graph.edata["d"]
 
         # Create a prefix sum array for in-degrees to use for indexing
-        prefix_sum = torch.cat([torch.tensor([0]).cuda(), in_degrees.cumsum(0)[:-1]])
+        prefix_sum = torch.cat([torch.tensor([0]), in_degrees.cumsum(0)[:-1]])
 
         # Get the edges for each node using advanced indexing
         selected_edges = []
