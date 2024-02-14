@@ -86,7 +86,7 @@ class PerturbationAdversary(BaseAdversary):
 
                     # Get index after reduction and index for addition base
                     reduced_index = sorted(np.random.choice(current_index, len(current_index) - min_count, replace=False)) # New list of index after reduction
-                    added_index = sorted(np.random.choice(current_index, plus_count, replace=False))
+                    added_index = sorted(np.random.choice(current_index, plus_count, replace=True))
 
                      # REDUCTION - Copy to new container
                     reduced_data = {}
