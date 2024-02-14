@@ -128,7 +128,7 @@ class CAREGNN(BaseModel):
         for layer in self.layers:
             print("x", x.shape)
             x, _ = layer(blocks, x, epoch)
-        return x
+        return x, None
     
     def postBackprop(self, graph, epoch, rl_idx, **kwargs):
         self.RLModule(graph, epoch, rl_idx)
