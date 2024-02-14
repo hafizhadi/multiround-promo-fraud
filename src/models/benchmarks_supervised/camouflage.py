@@ -38,7 +38,9 @@ class CAREConv(nn.Module):
             - torch.tanh(self.MLP(edges.dst["h"])), 1, 1,)
 
         print("dst", edges.dst['h'].shape)
-        return {"d": d}
+        print("d", d.shape)
+
+        return { "d": d }
 
     def _top_p_sampling(self, graph, p):
         # Compute the number of neighbors to keep for each node
