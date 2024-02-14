@@ -103,7 +103,7 @@ class MultiroundExperiment(object):
         verPrint(self.verbose, 1, 'Starting training...')
 
         # Various out of loop variables
-        rl_idx = torch.nonzero(self.train_mask & self.labels, as_tuple=False).squeeze(1)
+        rl_idx = torch.nonzero(self.dset['graph'].ndata['train_mask'] & labels, as_tuple=False).squeeze(1)
 
         for e in range(self.train_config['num_epoch']):
             self.model.train()
@@ -112,7 +112,7 @@ class MultiroundExperiment(object):
             if self.train_config['train_mode'] != 'batch':
                 # Forward pass
                 verPrint(self.verbose, 2, 'Forward')
-                logits, loss = self.model(self.dset['graph'], self.dset['graph'].ndata['feature'], **{'epoch': e})
+                logits, loss = self.model(self.dset['graph'], features **{'epoch': e})
                 self.logits = logits
                 epoch_loss = loss if loss != None else self.loss(logits[self.dset['graph'].ndata['train_mask']], labels[self.dset['graph'].ndata['train_mask']], weight=torch.tensor([1., self.train_config['ce_weight']]))
 
