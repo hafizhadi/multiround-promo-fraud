@@ -125,8 +125,9 @@ class CAREGNN(BaseModel):
 
     def forward(self, blocks, x, epoch=0, **kwargs):            
         for layer in self.layers:
-            feat = layer(blocks, x, epoch)
-        return feat
+            print("x", x.shape)
+            x, _ = layer(blocks, x, epoch)
+        return x
     
     def postBackprop(self, graph, epoch, rl_idx, **kwargs):
         self.RLModule(graph, epoch, rl_idx)
