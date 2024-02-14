@@ -34,13 +34,8 @@ class CAREConv(nn.Module):
 
     def _calc_distance(self, edges):
         # formula 2
-        print("src", edges.src['h'].shape)
-
         d = torch.norm(torch.tanh(self.MLP(edges.src["h"]))
             - torch.tanh(self.MLP(edges.dst["h"])), 1, 1,)
-
-        print("dst", edges.dst['h'].shape)
-        print("d", d.shape)
 
         return { "d": d }
 
@@ -126,7 +121,6 @@ class CAREGNN(BaseModel):
 
     def forward(self, blocks, x, epoch=0, **kwargs):            
         for layer in self.layers:
-            print("x", x.shape)
             x, _ = layer(blocks, x, epoch)
         return x, None
     
@@ -153,7 +147,6 @@ class CAREGNN(BaseModel):
                     layer.last_avg_dist[etype] = avg_dist
 
                     # formula 7
-                    print("epoch", epoch)
                     if epoch >= 9 and abs(sum(layer.f[etype][-10:])) <= 2:
                         layer.cvg[etype] = True
 
