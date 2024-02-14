@@ -133,7 +133,7 @@ class CAREGNN(BaseModel):
     def postBackprop(self, graph, epoch, rl_idx, **kwargs):
         self.RLModule(graph, epoch, rl_idx)
 
-    def RLModule(self, graph, rl_idx, epoch):
+    def RLModule(self, graph=None, epoch=0, rl_idx=None):
         for layer in self.layers:
             for etype in graph.canonical_etypes:
                 if not layer.cvg[etype]:
