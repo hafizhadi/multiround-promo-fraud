@@ -99,7 +99,7 @@ class CAREConv(nn.Module):
             if self.activation is not None:
                 h_homo = self.activation(h_homo)
 
-            return self.linear(h_homo)
+            return self.linear(h_homo), None
 
 
 class CAREGNN(BaseModel):
