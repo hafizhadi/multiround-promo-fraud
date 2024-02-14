@@ -13,7 +13,9 @@ from models.base_model import BaseModel
 ### CAMOUFLAGE-BASED FRAUD BENCHMARKS ###    
 ## CARE-GNN - https://github.com/squareRoot3/GADBench
 class CAREConv(nn.Module):
-    def __init__(self,in_feats, h_feats, num_classes=2, activation=None, step_size=0.02, **kwargs):
+    def __init__(
+            self, in_feats, num_classes, h_feats, 
+            activation=None, step_size=0.02, **kwargs):
         super().__init__()
         self.activation = activation
         self.step_size = step_size
@@ -30,6 +32,7 @@ class CAREConv(nn.Module):
 
     def _calc_distance(self, edges):
         # formula 2
+        print(edges.src['h'])
         d = torch.norm(torch.tanh(self.MLP(edges.src["h"]))
             - torch.tanh(self.MLP(edges.dst["h"])), 1, 1,)
         return {"d": d}
