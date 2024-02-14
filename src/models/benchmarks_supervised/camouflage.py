@@ -153,6 +153,7 @@ class CAREGNN(BaseModel):
                     layer.last_avg_dist[etype] = avg_dist
 
                     # formula 7
+                    print("epoch", epoch)
                     if epoch >= 9 and abs(sum(layer.f[etype][-10:])) <= 2:
                         layer.cvg[etype] = True
 
