@@ -105,7 +105,7 @@ class GCN(BaseModel):
             self.layers.append(dglnn.GraphConv(h_feats, h_feats, activation=self.act))
         self.mlp = MLP(h_feats, h_feats=mlp_h_feats, num_classes=num_classes, num_layers=mlp_num_layers, dropout_rate=dropout_rate)  
 
-    def forward(self, blocks, x):
+    def forward(self, blocks, x, **kwargs):
         """_summary_
 
         Args:
@@ -167,7 +167,7 @@ class GraphSAGE(BaseModel):
         self.mlp = MLP(h_feats, h_feats=mlp_h_feats, num_classes=num_classes, num_layers=mlp_num_layers, dropout_rate=dropout_rate)  
 
 
-    def forward(self, blocks, x):
+    def forward(self, blocks, x, **kwargs):
         """_summary_
 
         Args:
@@ -221,7 +221,7 @@ class GIN(BaseModel):
             self.layers.append(dglnn.GINConv(nn.Linear(h_feats, h_feats), activation=self.act, aggregator_type=agg))
         self.layers.append(dglnn.GINConv(nn.Linear(h_feats, num_classes),  activation=None, aggregator_type=agg))
 
-    def forward(self, blocks, x):
+    def forward(self, blocks, x, **kwargs):
         """_summary_
 
         Args:
@@ -276,7 +276,7 @@ class GAT(BaseModel):
             self.layers.append(dglnn.GATConv(h_feats * att_heads, h_feats, att_heads, feat_drop=dropout_rate, attn_drop=dropout_rate, activation=self.act))
         self.mlp = MLP(h_feats, h_feats=mlp_h_feats, num_classes=num_classes, num_layers=mlp_num_layers, dropout_rate=dropout_rate)  
 
-    def forward(self, blocks, x):
+    def forward(self, blocks, x, **kwargs):
         """_summary_
 
         Args:

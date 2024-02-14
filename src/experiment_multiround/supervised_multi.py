@@ -101,6 +101,10 @@ class MultiroundExperiment(object):
         # Main Training Loop
         time_start = time.time()
         verPrint(self.verbose, 1, 'Starting training...')
+
+        # Various out of loop variables
+        rl_idx = torch.nonzero(self.train_mask & self.labels, as_tuple=False).squeeze(1)
+
         for e in range(self.train_config['num_epoch']):
             self.model.train()
             self.logits = torch.zeros([len(labels), 2])
@@ -108,7 +112,7 @@ class MultiroundExperiment(object):
             if self.train_config['train_mode'] != 'batch':
                 # Forward pass
                 verPrint(self.verbose, 2, 'Forward')
-                logits, loss = self.model(self.dset['graph'], self.dset['graph'].ndata['feature'])
+                logits, loss = self.model(self.dset['graph'], self.dset['graph'].ndata['feature'], **{'epoch': e})
                 self.logits = logits
                 epoch_loss = loss if loss != None else self.loss(logits[self.dset['graph'].ndata['train_mask']], labels[self.dset['graph'].ndata['train_mask']], weight=torch.tensor([1., self.train_config['ce_weight']]))
 
@@ -117,6 +121,9 @@ class MultiroundExperiment(object):
                 self.optimizer.zero_grad()
                 epoch_loss.backward()
                 self.optimizer.step()
+
+                # Additional stuff post backprop
+                self.model.postBackprop(**{ 'graph': self.dset['graph'], 'epoch': e, rl_idx: rl_idx })           
             else:
                 i = 0
                 for input_nodes, output_nodes, blocks in self.dset['dataloader']:
@@ -128,7 +135,7 @@ class MultiroundExperiment(object):
                     input_features = blocks[0].srcdata['feature']
                     output_labels = blocks[-1].dstdata['label']
 
-                    logits, loss = self.model(blocks, input_features)
+                    logits, loss = self.model(blocks, input_features, **{'epoch': e})
                     self.logits[output_nodes] = logits.cpu()
                     epoch_loss = loss if loss != None else self.loss(logits, output_labels, weight=torch.tensor([1., self.train_config['ce_weight']]).to(torch.device('cuda')))
 
@@ -143,6 +150,9 @@ class MultiroundExperiment(object):
                     verPrint(self.verbose, 3, f'CPU Memory Usage: {py_process.memory_info().rss / (1024 ** 3)} GB')
                     verPrint(self.verbose, 3, f'GPU Memory Usage: {torch.cuda.memory_reserved() / (1024 ** 3)} GB')
 
+                    # TODO: Postbackprop for batch
+
+            
             # Evaluate
             verPrint(self.verbose, 2, 'Evaluate')
             self.model.eval()

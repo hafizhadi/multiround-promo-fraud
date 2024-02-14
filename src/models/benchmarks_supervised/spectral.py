@@ -77,7 +77,7 @@ class BWGNN(BaseModel):
         self.mlp = MLP(h_feats * len(self.thetas), h_feats, num_classes, mlp_num_layers, dropout_rate)
 
 
-    def forward(self, blocks, x):
+    def forward(self, blocks, x, **kwargs):
         verPrint(self.verbose, 3, f'BWGNN:forward | {blocks} {x}')
 
         # TODO: Batch
