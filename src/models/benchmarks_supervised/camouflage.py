@@ -115,9 +115,9 @@ class CAREGNN(BaseModel):
             # self.layers.append(   # Output layer
                 # CAREConv(self.h_feats, self.num_classes, self.num_classes, activation=self.activation, step_size=self.step_size,))
 
-    def forward(self, graph, epoch=0):            
+    def forward(self, blocks, x, epoch=0, **kwargs):            
         for layer in self.layers:
-            feat = layer(graph, epoch)
+            feat = layer(blocks, x, epoch)
         return feat
     
     def postBackprop(self, graph, epoch, rl_idx, **kwargs):
