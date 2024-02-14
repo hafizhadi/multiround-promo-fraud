@@ -123,7 +123,7 @@ class MultiroundExperiment(object):
                 self.optimizer.step()
 
                 # Additional stuff post backprop
-                self.model.postBackprop(**{ 'graph': self.dset['graph'], 'epoch': e, rl_idx: rl_idx })           
+                self.model.postBackprop(**{ 'graph': self.dset['graph'], 'epoch': e, 'rl_idx': rl_idx })           
             else:
                 i = 0
                 for input_nodes, output_nodes, blocks in self.dset['dataloader']:
