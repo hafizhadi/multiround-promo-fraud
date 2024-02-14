@@ -12,6 +12,8 @@ from models.base_model import BaseModel
 
 ### CAMOUFLAGE-BASED FRAUD BENCHMARKS ###    
 ## CARE-GNN - https://github.com/squareRoot3/GADBench
+# TODO: Not sure if this is the correct implementation, similarity loss where?
+
 class CAREConv(nn.Module):
     def __init__(
             self, in_feats, num_classes, h_feats, 
@@ -115,13 +117,12 @@ class CAREGNN(BaseModel):
         self.step_size = step_size
         self.num_layers = num_layers
         self.output_linear = nn.Linear(h_feats, num_classes)
+        
         self.layers = nn.ModuleList()
-        self.layers.append(          # Input layer
-            CAREConv(self.in_feats, self.num_classes, self.num_classes, activation=self.activation, step_size=self.step_size,))
+        self.layers.append(CAREConv(self.in_feats, self.num_classes, self.h_feats, activation=self.activation, step_size=self.step_size,)) # Input
         for i in range(self.num_layers - 1):  # Hidden layers with n - 2 layers
-            self.layers.append(CAREConv(self.h_feats, self.h_feats, self.num_classes, activation=self.activation, step_size=self.step_size,))
-            # self.layers.append(   # Output layer
-                # CAREConv(self.h_feats, self.num_classes, self.num_classes, activation=self.activation, step_size=self.step_size,))
+            self.layers.append(CAREConv(self.h_feats, self.num_classes, self.h_feats, activation=self.activation, step_size=self.step_size,)) # Middle
+        self.layers.append(CAREConv(self.h_feats, self.num_classes, self.num_classes, activation=self.activation, step_size=self.step_size,)) # Output
 
     def forward(self, blocks, x, epoch=0, **kwargs):            
         for layer in self.layers:
