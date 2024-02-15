@@ -64,10 +64,17 @@ class MultiroundExperiment(object):
             positive_budgets = random.choice(list(set(torch.cat([self.rounds[i]['checks'][3] for i in (list(range(round)))], 0).tolist()) - set(full_pool.tolist())), self.train_config['round_manual_budget'])
             positive_budgets = torch.tensor(positive_budgets)
             full_pool = torch.cat([full_pool, positive_budgets], 0)
+
+            print('Preds', positive_preds)
+            print('Budgets', positive_budgets)
+
         else:
             full_pool = torch.arange(len(labels), dtype=torch.long)
             
         index = torch.arange(len(labels), dtype=torch.long)[full_pool]
+
+        print('Index', index)
+        
         nonindex = torch.ones_like(labels, dtype=bool)
         nonindex[full_pool] = False
 
