@@ -187,7 +187,7 @@ class MultiroundExperiment(object):
 
         (idx_train, idx_valid, idx_test, y_train, y_valid, y_test) = split_res
 
-        # Initialize sampler in catch of batch training
+        # Initialize sampler in case of batch training
         if self.train_config['train_mode'] == 'batch':
             self.dset['sampler'] = dgl.dataloading.MultiLayerFullNeighborSampler(self.model_config['num_layers'])
             self.dset['dataloader'] = dgl.dataloading.DataLoader(
@@ -285,15 +285,27 @@ class MultiroundExperiment(object):
             new_neg_nodes, new_neg_edges, neg_seed, _ = self.round_generate_negatives()
             self.add_generated_data((new_neg_nodes, new_neg_edges))
 
+            self.rounds[round]['seeds_pos'] = adv_seed
+            self.rounds[round]['seeds_neg'] = neg_seed
+
+        # Train
         self.model_round_train(round)
+
+        # Predict
         self.rounds[round]['preds'], self.rounds[round]['probs'], self.rounds[round]['checks'] = self.model_round_predict()
         round_mask = (self.dset['graph'].ndata['creation_round'] == round).nonzero()
+        non_round_mask = (self.dset['graph'].ndata['creation_round'] < round).nonzero()
         labels = self.dset['graph'].ndata['label']
-        if round > 0:
-            _ = eval_and_print(self.verbose, labels[round_mask], self.rounds[round]['preds'][round_mask], self.rounds[round]['probs'][round_mask], 'Round')
-            _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Round - Seeds')
-            _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round-1]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Prev round - Seeds')
-        else:
-            verPrint(self.verbose, 1, 'No prediction this round.')
+        
+        verPrint(self.verbose, 1, '---\nPREDICTION RESULT - DATASET')
+        _ = eval_and_print(self.verbose, labels, self.rounds[round]['preds'], self.rounds[round]['probs'], 'Dataset - Round')
 
-        _ = eval_and_print(self.verbose, labels, self.rounds[round]['preds'], self.rounds[round]['probs'], 'Overall')
+        if round > 0:
+            _ = eval_and_print(self.verbose, labels[non_round_mask], self.rounds[round]['preds'][non_round_mask], self.rounds[round]['probs'][non_round_mask], 'Dataset - Non-round Only')
+            _ = eval_and_print(self.verbose, labels[round_mask], self.rounds[round]['preds'][round_mask], self.rounds[round]['probs'][round_mask], 'Dataset - Round Only')
+
+
+            verPrint(self.verbose, 1, '---\nPREDICTION RESULT - SEEDS')
+            _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Seeds - Current')
+            _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round-1]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Seeds - Prev')
+
