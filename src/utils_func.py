@@ -15,13 +15,9 @@ def verPrint(verbose_status, verbose_threshold, msg):
         print(msg)
 
 ## Training related
-def hinge_loss(labels, scores):
-    margin = 1
+def hinge_loss(labels, scores, margin=1):
     ls = labels * scores
-    
     loss = F.relu(margin-ls)
-    print("After ReLU", loss)
-
     loss = loss.mean()
     return loss
 
