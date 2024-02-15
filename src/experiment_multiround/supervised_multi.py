@@ -5,6 +5,7 @@ import time, psutil, os
 import numpy as np
 import torch.nn.functional as F
 from sklearn.model_selection import train_test_split
+from numpy import random
 
 from adversarial.adversarial import BaseAdversary
 
@@ -54,9 +55,15 @@ class MultiroundExperiment(object):
         self.dset['graph'].ndata['test_mask'] = torch.zeros([len(labels)]).bool()
 
         if round > 0:
+            # Labels from prediction
             initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten() if all_data else torch.tensor([], dtype=torch.long)
-            positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:2], 0) for i in (list(range(round)) if all_data else [round-1])], 0)
+            positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:2], 0) for i in (list(range(round)) if all_data else [round-1])], 0)            
             full_pool = torch.cat([initial_pool, positive_preds], 0)
+
+            # Budgeted true labels
+            positive_budgets = random.choice(list(set(torch.cat([self.rounds[i]['checks'][3] for i in (list(range(round)))], 0).tolist()) - set(full_pool.tolist())), self.train_config['round_manual_budget'])
+            positive_budgets = torch.tensor(positive_budgets)
+            full_pool = torch.cat([full_pool, positive_budgets], 0)
         else:
             full_pool = torch.arange(len(labels), dtype=torch.long)
             
@@ -297,7 +304,7 @@ class MultiroundExperiment(object):
         non_round_mask = (self.dset['graph'].ndata['creation_round'] < round).nonzero()
         labels = self.dset['graph'].ndata['label']
         
-        verPrint(self.verbose, 1, '---\nPREDICTION RESULT - DATASET')
+        verPrint(self.verbose, 1, 'PREDICTION RESULT - DATASET')
         _ = eval_and_print(self.verbose, labels, self.rounds[round]['preds'], self.rounds[round]['probs'], 'Dataset - Round')
 
         if round > 0:
