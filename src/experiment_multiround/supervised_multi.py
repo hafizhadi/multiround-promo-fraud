@@ -108,7 +108,7 @@ class MultiroundExperiment(object):
         budget_new_positives = torch.cat([self.rounds[i]['budgets'][0] for i in list(range(round))], 0).tolist()
         
         positive_budget_pool = list(set(all_new_positives) - set(predicted_new_positives) - set(budget_new_positives))
-        round_budget = min([len(positive_budget_pool), self.train_config['round_manual_pos']])
+        round_budget = min([len(positive_budget_pool), self.train_config['round_budget_pos']])
         positive_budgets = torch.tensor(random.choice(positive_budget_pool, round_budget, replace=False))         
         
         # NEGATIVES
@@ -116,7 +116,7 @@ class MultiroundExperiment(object):
         predicted_new_negatives = torch.cat([self.rounds[i]['checks'][1] for i in list(range(round))], 0).tolist()
 
         negative_budget_pool = list(set(base_negatives).union(predicted_new_negatives))
-        negative_budgets = torch.tensor(random.choice(negative_budget_pool, self.train_config['round_negative_pos'], replace=False))
+        negative_budgets = torch.tensor(random.choice(negative_budget_pool, self.train_config['round_budget_neg'], replace=False))
 
         return torch.tensor(positive_budgets), torch.tensor(negative_budgets)
 
@@ -263,11 +263,11 @@ class MultiroundExperiment(object):
 
     # adver generation of new positive instances
     def adversary_round_generate(self):
-        return self.adver.generate(self.dset['graph'], n_instances=self.train_config['round_pos_count'], return_ids=True)
+        return self.adver.generate(self.dset['graph'], n_instances=self.train_config['round_new_pos'], return_ids=True)
     
     # Generate negative instances
     def round_generate_negatives(self):
-        return BaseAdversary.random_duplicate(self.dset['graph'], n_instances=self.train_config['round_neg_count'], label=0, return_ids=True)
+        return BaseAdversary.random_duplicate(self.dset['graph'], n_instances=self.train_config['round_new_neg'], label=0, return_ids=True)
     
     # Add generated new nodes to graph
     def add_generated_data(self, data):
