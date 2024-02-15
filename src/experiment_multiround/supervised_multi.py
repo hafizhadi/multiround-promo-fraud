@@ -59,22 +59,12 @@ class MultiroundExperiment(object):
         else:
             initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten() if all_data else torch.tensor([], dtype=torch.long) # Base ground truth
             positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:1], 0) for i in (list(range(round)) if all_data else [round-1])], 0) # Additional ground truths from correct guess
-            budgets = torch.cat([torch.cat(self.rounds[i]['budgets'], 0) for i in (list(range(round + 1)) if all_data else [round])], 0) # Ground truth from round budgets
-            
+            budgets = torch.cat([torch.cat(self.rounds[i]['budgets'], 0) for i in (list(range(round + 1)) if all_data else [round])], 0) # Ground truth from round budgets            
             full_pool = torch.cat([initial_pool, positive_preds, budgets], 0).long()
 
-            print('Initial', initial_pool)
-            print('Pos preds', positive_preds)
-            print('Budgets', budgets)
-            
-        index = torch.arange(len(labels), dtype=torch.long)[full_pool]
-
-        print('Index', index.shape, index)
-        
+        index = torch.arange(len(labels), dtype=torch.long)[full_pool]        
         nonindex = torch.ones_like(labels, dtype=bool)
         nonindex[full_pool] = False
-
-        print('Nonindex', nonindex.nonzero().squeeze(1).shape, nonindex.nonzero().squeeze(1))
 
         # Train Test Split
         if (torch.sum(labels[index] == 0) < 2) or (torch.sum(labels[index] == 1) < 2):
@@ -118,7 +108,7 @@ class MultiroundExperiment(object):
         negative_budget_pool = list(set(base_negatives).union(predicted_new_negatives))
         negative_budgets = torch.tensor(random.choice(negative_budget_pool, self.train_config['round_budget_neg'], replace=False))
 
-        return torch.tensor(positive_budgets), torch.tensor(negative_budgets)
+        return positive_budgets, negative_budgets
 
     # Train model normally on entire dataset
     def model_train(self):
