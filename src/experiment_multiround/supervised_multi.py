@@ -299,7 +299,7 @@ class MultiroundExperiment(object):
         # Reset all subsequent round data
         self.current_round = round
         self.rounds = self.rounds[:round]
-        self.rounds.append({'budgets': [[], []]})
+        self.rounds.append({'budgets': [torch.tensor([]), torch.tensor([])]})
         self.dset['graph'] = dgl.remove_nodes(self.dset['graph'], (self.dset['graph'].ndata['creation_round'] >= max([round, 1])).nonzero().flatten())
         
         # Generate additional adversarial data for round
