@@ -299,7 +299,7 @@ class MultiroundExperiment(object):
         # Reset all subsequent round data
         self.current_round = round
         self.rounds = self.rounds[:round]
-        self.rounds.append({})
+        self.rounds.append({'budgets': [[], []]})
         self.dset['graph'] = dgl.remove_nodes(self.dset['graph'], (self.dset['graph'].ndata['creation_round'] >= max([round, 1])).nonzero().flatten())
         
         # Generate additional adversarial data for round
@@ -308,9 +308,8 @@ class MultiroundExperiment(object):
             # Train model and adversary based on last round info
             # TODO: self.adversary_round_train(round)
 
-            # Generate additional data for round
-
             # New ground truth for training from budget
+            verPrint(self.verbose, 2, f'Selecting data as budgeted ground truth of round...')
             self.rounds[round]['budgets'] = self.get_round_budget(round)
 
             # New nodes to classify
