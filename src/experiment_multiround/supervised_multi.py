@@ -210,7 +210,7 @@ class MultiroundExperiment(object):
             return
 
         (idx_train, idx_valid, idx_test, y_train, y_valid, y_test) = split_res
-        verPrint(self.verbose, 1, f'Training set: {len(idx_train)} ({dict(Counter(y_train))}) rows | Validation set:  {len(idx_valid)} ({dict(Counter(y_valid))}) rows | Test set:  {len(idx_test)} ({dict(Counter(y_test))}) rows')
+        verPrint(self.verbose, 1, f'Training set: {len(idx_train)} ({dict(Counter(y_train.tolist()))}) rows | Validation set:  {len(idx_valid)} ({dict(Counter(y_valid.tolist()))}) rows | Test set:  {len(idx_test)} ({dict(Counter(y_test.tolist()))}) rows')
 
         # Initialize sampler in case of batch training
         if self.train_config['train_mode'] == 'batch':
