@@ -118,8 +118,7 @@ class MultiroundExperiment(object):
         negative_budget_pool = list(set(base_negatives) + set(predicted_new_negatives))
         negative_budgets = torch.tensor(random.choice(negative_budget_pool, self.train_config['round_negative_pos'], replace=False))
 
-        return positive_budgets, negative_budgets
-
+        return torch.tensor(positive_budgets), torch.tensor(negative_budgets)
 
     # Train model normally on entire dataset
     def model_train(self):
@@ -270,6 +269,7 @@ class MultiroundExperiment(object):
     def round_generate_negatives(self):
         return BaseAdversary.random_duplicate(self.dset['graph'], n_instances=self.train_config['round_neg_count'], label=0, return_ids=True)
     
+    # Add generated new nodes to graph
     def add_generated_data(self, data):
         new_nodes, new_edges = data
 
