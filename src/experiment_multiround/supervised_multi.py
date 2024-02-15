@@ -65,20 +65,20 @@ class MultiroundExperiment(object):
             positive_budgets = torch.tensor(positive_budgets)
             full_pool = torch.cat([full_pool, positive_budgets], 0)
 
-            print('Preds', positive_preds)
-            print('Budgets', positive_budgets)
+            print('Preds', positive_preds.shape, positive_preds)
+            print('Budgets', positive_budgets.shape, positive_budgets)
 
         else:
             full_pool = torch.arange(len(labels), dtype=torch.long)
             
         index = torch.arange(len(labels), dtype=torch.long)[full_pool]
 
-        print('Index', index)
+        print('Index', index.shape, index)
         
         nonindex = torch.ones_like(labels, dtype=bool)
         nonindex[full_pool] = False
 
-        print('Nonindex', nonindex.nonzero().squeeze(1))
+        print('Nonindex', nonindex.nonzero().squeeze(1).shape, nonindex.nonzero().squeeze(1))
 
         # Train Test Split
         if (torch.sum(labels[index] == 0) < 2) or (torch.sum(labels[index] == 1) < 2):
