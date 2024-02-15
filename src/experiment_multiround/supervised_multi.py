@@ -78,6 +78,8 @@ class MultiroundExperiment(object):
         nonindex = torch.ones_like(labels, dtype=bool)
         nonindex[full_pool] = False
 
+        print('Nonindex', nonindex.nonzero().squeeze(1))
+
         # Train Test Split
         if (torch.sum(labels[index] == 0) < 2) or (torch.sum(labels[index] == 1) < 2):
             return None
