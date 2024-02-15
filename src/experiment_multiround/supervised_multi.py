@@ -54,22 +54,18 @@ class MultiroundExperiment(object):
         self.dset['graph'].ndata['val_mask'] = torch.zeros([len(labels)]).bool()
         self.dset['graph'].ndata['test_mask'] = torch.zeros([len(labels)]).bool()
 
-        if round > 0:
-            # Labels from prediction
-            initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten() if all_data else torch.tensor([], dtype=torch.long)
-            positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:2], 0) for i in (list(range(round)) if all_data else [round-1])], 0)            
-            full_pool = torch.cat([initial_pool, positive_preds], 0)
-
-            # Budgeted true labels
-            positive_budgets = random.choice(list(set(torch.cat([self.rounds[i]['checks'][3] for i in (list(range(round)))], 0).tolist()) - set(full_pool.tolist())), self.train_config['round_manual_budget'])
-            positive_budgets = torch.tensor(positive_budgets)
-            full_pool = torch.cat([full_pool, positive_budgets], 0)
-
-            print('Preds', positive_preds.shape, positive_preds)
-            print('Budgets', positive_budgets.shape, positive_budgets)
-
-        else:
+        if round == 0:
             full_pool = torch.arange(len(labels), dtype=torch.long)
+        else:
+            initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten() if all_data else torch.tensor([], dtype=torch.long) # Base ground truth
+            positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:1], 0) for i in (list(range(round)) if all_data else [round-1])], 0) # Additional ground truths from correct guess
+            budgets = torch.cat([torch.cat(self.rounds[i]['budgets'], 0) for i in (list(range(round + 1)) if all_data else [round])], 0) # Ground truth from round budgets
+            
+            full_pool = torch.cat([initial_pool, positive_preds, budgets], 0)
+
+            print('Initial', initial_pool)
+            print('Pos preds', positive_preds)
+            print('Budgets', budgets)
             
         index = torch.arange(len(labels), dtype=torch.long)[full_pool]
 
@@ -103,6 +99,27 @@ class MultiroundExperiment(object):
         self.train_config['ce_weight'] = (1-labels[self.dset['graph'].ndata['train_mask']]).sum().item() / labels[self.dset['graph'].ndata['train_mask']].sum().item()
 
         return idx_train, idx_valid, idx_test, y_train, y_valid, y_test
+
+    # Get budgeted ground truth for the round
+    def get_round_budget(self, round):
+        # POSITIVES
+        all_new_positives = ((self.dset['graph'].ndata['creation_round'] > 0) & (self.dset['graph'].ndata['label'] == 1)).nonzero().flatten().tolist()
+        predicted_new_positives = torch.cat([torch.cat(self.rounds[i]['checks'][0], 0) for i in list(range(round))], 0).tolist()
+        budget_new_positives = torch.cat([torch.cat(self.rounds[i]['budgets'][0], 0) for i in list(range(round))], 0).tolist()
+        
+        positive_budget_pool = list(set(all_new_positives) - set(predicted_new_positives) - set(budget_new_positives))
+        round_budget = min([len(positive_budget_pool), self.train_config['round_manual_pos']])
+        positive_budgets = torch.tensor(random.choice(positive_budget_pool, round_budget, replace=False))         
+        
+        # NEGATIVES
+        base_negatives = ((self.dset['graph'].ndata['creation_round'] == 0) & (self.dset['graph'].ndata['label'] == 0)).nonzero().flatten().tolist()
+        predicted_new_negatives = torch.cat([torch.cat(self.rounds[i]['checks'][1], 0) for i in list(range(round))], 0).tolist()
+
+        negative_budget_pool = list(set(base_negatives) + set(predicted_new_negatives))
+        negative_budgets = torch.tensor(random.choice(negative_budget_pool, self.train_config['round_negative_pos'], replace=False))
+
+        return positive_budgets, negative_budgets
+
 
     # Train model normally on entire dataset
     def model_train(self):
@@ -167,7 +184,6 @@ class MultiroundExperiment(object):
                     verPrint(self.verbose, 3, f'GPU Memory Usage: {torch.cuda.memory_reserved() / (1024 ** 3)} GB')
 
                     # TODO: Postbackprop for batch
-
             
             # Evaluate
             verPrint(self.verbose, 2, 'Evaluate')
@@ -293,6 +309,11 @@ class MultiroundExperiment(object):
             # TODO: self.adversary_round_train(round)
 
             # Generate additional data for round
+
+            # New ground truth for training from budget
+            self.rounds[round]['budgets'] = self.get_round_budget(round)
+
+            # New nodes to classify
             verPrint(self.verbose, 2, f'Generating additional positive data from adversary...')
             new_adv_nodes, new_adv_edges, adv_seed, _ = self.adversary_round_generate()
             self.add_generated_data((new_adv_nodes, new_adv_edges))
