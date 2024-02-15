@@ -61,7 +61,7 @@ class MultiroundExperiment(object):
             positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:1], 0) for i in (list(range(round)) if all_data else [round-1])], 0) # Additional ground truths from correct guess
             budgets = torch.cat([torch.cat(self.rounds[i]['budgets'], 0) for i in (list(range(round + 1)) if all_data else [round])], 0) # Ground truth from round budgets
             
-            full_pool = torch.cat([initial_pool, positive_preds, budgets], 0)
+            full_pool = torch.cat([initial_pool, positive_preds, budgets], 0).long()
 
             print('Initial', initial_pool)
             print('Pos preds', positive_preds)
