@@ -115,7 +115,7 @@ class MultiroundExperiment(object):
         base_negatives = ((self.dset['graph'].ndata['creation_round'] == 0) & (self.dset['graph'].ndata['label'] == 0)).nonzero().flatten().tolist()
         predicted_new_negatives = torch.cat([self.rounds[i]['checks'][1] for i in list(range(round))], 0).tolist()
 
-        negative_budget_pool = list(set(base_negatives) + set(predicted_new_negatives))
+        negative_budget_pool = list(set(base_negatives).union(predicted_new_negatives))
         negative_budgets = torch.tensor(random.choice(negative_budget_pool, self.train_config['round_negative_pos'], replace=False))
 
         return torch.tensor(positive_budgets), torch.tensor(negative_budgets)
