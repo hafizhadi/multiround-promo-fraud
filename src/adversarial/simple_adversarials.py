@@ -69,7 +69,7 @@ class PerturbationAdversary(BaseAdversary):
                 perturb_amount = torch.randint(0, rel_budget + 1, degrees.shape)
 
                 # Split amount to deletion and addition
-                max_minus = ((degrees + rel_budget) / 2).floor() # Maximum deletion possible
+                max_minus = ((degrees + rel_budget) / 2).floor() - 1 # Maximum deletion possible, - 1 to prevent 0 degree node
                 perturb_minus = torch.minimum(((torch.rand(degrees.shape) * perturb_amount).round()), max_minus) # Deletion count capped by the max
                 perturb_cancels = torch.minimum((degrees - perturb_minus), torch.zeros(degrees.shape)).abs() # Amount of plus and minus that cancels out if any
 
