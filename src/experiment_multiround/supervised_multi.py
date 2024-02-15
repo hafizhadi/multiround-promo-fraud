@@ -209,7 +209,6 @@ class MultiroundExperiment(object):
             verPrint(self.verbose, 1, 'No additional dataset to train with!')
             return
 
-        verPrint(self.verbose, 1, f'Training set: {len(idx_train)} ({dict(Counter(y_train))}) rows | Validation set:  {len(idx_valid)} ({dict(Counter(y_valid))}) rows | Test set:  {len(idx_test)} ({dict(Counter(y_test))}) rows')
         (idx_train, idx_valid, idx_test, y_train, y_valid, y_test) = split_res
         verPrint(self.verbose, 1, f'Training set: {len(idx_train)} ({dict(Counter(y_train))}) rows | Validation set:  {len(idx_valid)} ({dict(Counter(y_valid))}) rows | Test set:  {len(idx_test)} ({dict(Counter(y_test))}) rows')
 
