@@ -4,8 +4,10 @@ import torch
 import time, psutil, os
 import numpy as np
 import torch.nn.functional as F
-from sklearn.model_selection import train_test_split
+
+from collections import Counter
 from numpy import random
+from sklearn.model_selection import train_test_split
 
 from adversarial.adversarial import BaseAdversary
 
@@ -190,10 +192,10 @@ class MultiroundExperiment(object):
                 final_tpre = tpre
                 final_tmf1 = tmf1
                 final_tauc = tauc
-            verPrint(self.verbose, 1, 'Epoch {}, loss: {:.4f}, val mf1: {:.4f}, (best {:.4f})'.format(e, epoch_loss, f1, best_f1))
+            verPrint(self.verbose, 2, 'Epoch {}, loss: {:.4f}, val mf1: {:.4f}, (best {:.4f})'.format(e, epoch_loss, f1, best_f1))
 
         time_end = time.time()
-        verPrint(self.verbose, 2, f'time cost: {str(time_end - time_start)} s')
+        verPrint(self.verbose, 3, f'time cost: {str(time_end - time_start)} s')
         verPrint(self.verbose, 1, 'Test: REC {:.2f} PRE {:.2f} MF1 {:.2f} AUC {:.2f}'.format(final_trec*100, final_tpre*100, final_tmf1*100, final_tauc*100))
         verPrint(self.verbose, 1, 'Ending training!\n=========')
         return final_tmf1, final_tauc
@@ -202,10 +204,12 @@ class MultiroundExperiment(object):
     def model_round_train(self, round):
         # Prepare training data for the round
         split_res = self.split_train_test(round, all_data=self.train_config['round_all_data'])
+
         if split_res == None:
             verPrint(self.verbose, 1, 'No additional dataset to train with!')
             return
 
+        verPrint(self.verbose, 1, f'Training set: {len(idx_train)} ({dict(Counter(y_train))}) rows | Validation set:  {len(idx_valid)} ({dict(Counter(y_valid))}) rows | Test set:  {len(idx_test)} ({dict(Counter(y_test))}) rows')
         (idx_train, idx_valid, idx_test, y_train, y_valid, y_test) = split_res
 
         # Initialize sampler in case of batch training
@@ -324,7 +328,7 @@ class MultiroundExperiment(object):
         labels = self.dset['graph'].ndata['label']
         
         verPrint(self.verbose, 1, 'PREDICTION RESULT - DATASET')
-        _ = eval_and_print(self.verbose, labels, self.rounds[round]['preds'], self.rounds[round]['probs'], 'Dataset - Round')
+        _ = eval_and_print(self.verbose, labels, self.rounds[round]['preds'], self.rounds[round]['probs'], 'Dataset - Overall')
 
         if round > 0:
             _ = eval_and_print(self.verbose, labels[non_round_mask], self.rounds[round]['preds'][non_round_mask], self.rounds[round]['probs'][non_round_mask], 'Dataset - Non-round Only')
