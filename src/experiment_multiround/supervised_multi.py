@@ -284,7 +284,7 @@ class MultiroundExperiment(object):
     
     # Execute 1 adver round based on the current state of the experiment
     def adver_round(self, round):
-        verPrint(self.verbose, 1, f'Starting round {round}!\n=========')
+        verPrint(self.verbose, 1, f'\n=========\nSTARTING ROUND {round}!\n=========')
 
         # Initialization and check to see if inputted round number is valid (i.e. the previous round has been conducted)
         if(len(self.rounds) < round):
