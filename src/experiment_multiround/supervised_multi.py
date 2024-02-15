@@ -104,8 +104,8 @@ class MultiroundExperiment(object):
     def get_round_budget(self, round):
         # POSITIVES
         all_new_positives = ((self.dset['graph'].ndata['creation_round'] > 0) & (self.dset['graph'].ndata['label'] == 1)).nonzero().flatten().tolist()
-        predicted_new_positives = torch.cat([torch.cat(self.rounds[i]['checks'][0], 0) for i in list(range(round))], 0).tolist()
-        budget_new_positives = torch.cat([torch.cat(self.rounds[i]['budgets'][0], 0) for i in list(range(round))], 0).tolist()
+        predicted_new_positives = torch.cat([self.rounds[i]['checks'][0] for i in list(range(round))], 0).tolist()
+        budget_new_positives = torch.cat([self.rounds[i]['budgets'][0] for i in list(range(round))], 0).tolist()
         
         positive_budget_pool = list(set(all_new_positives) - set(predicted_new_positives) - set(budget_new_positives))
         round_budget = min([len(positive_budget_pool), self.train_config['round_manual_pos']])
@@ -113,7 +113,7 @@ class MultiroundExperiment(object):
         
         # NEGATIVES
         base_negatives = ((self.dset['graph'].ndata['creation_round'] == 0) & (self.dset['graph'].ndata['label'] == 0)).nonzero().flatten().tolist()
-        predicted_new_negatives = torch.cat([torch.cat(self.rounds[i]['checks'][1], 0) for i in list(range(round))], 0).tolist()
+        predicted_new_negatives = torch.cat([self.rounds[i]['checks'][1] for i in list(range(round))], 0).tolist()
 
         negative_budget_pool = list(set(base_negatives) + set(predicted_new_negatives))
         negative_budgets = torch.tensor(random.choice(negative_budget_pool, self.train_config['round_negative_pos'], replace=False))
