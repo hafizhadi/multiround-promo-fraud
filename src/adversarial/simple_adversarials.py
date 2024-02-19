@@ -12,16 +12,17 @@ from utils_func import verPrint
 
 class ReplayAdversary(BaseAdversary):
     def __init__(self, greedy_seed=False, verbose=0, **kwargs):
+        verPrint(verbose, 3, f'ReplayAdversary:__init__ | greedy_seed:{greedy_seed}')
+
         super().__init__()
         self.verbose=verbose       
-        verPrint(self.verbose, 3, f'ReplayAdversary:__init__')
-
         self.greedy_seed = greedy_seed
-    
-    def generate(self, graph, n_instances=1, return_ids=False, **kwargs):
-        verPrint(self.verbose, 3, f'ReplayAdversary:generate | {n_instances} {return_ids}')
 
-        prio_pool = torch.tensor([], dtype=torch.long) if (not self.greedy_seed) else ((graph.ndata['predicted'] == False) & (graph.ndata['label'] == 1)).nonzero().flatten()
+    
+    def generate(self, graph, n_instances=10, return_ids=False, **kwargs):
+        verPrint(self.verbose, 3, f'ReplayAdversary:generate | n_instances: {n_instances},  return_ids: {return_ids}')
+        
+        prio_pool = torch.tensor([], dtype=torch.long) if (not self.greedy_seed) else ((graph.ndata['predicted'] == False) & (graph.ndata['label'] == 1)).nonzero().flatten() # Get prioritized pool if greedy
         return BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids, prio_pool=prio_pool)
 
 ######################
