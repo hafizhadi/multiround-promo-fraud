@@ -78,6 +78,7 @@ class RelativePerturbationAdversary(BaseAdversary):
                     current_index = (replay_edge[val]['in']['dst'] == id).nonzero().flatten().tolist() # All index of Node's edge
 
                     # Get index after reduction and index for addition base
+                    print(id, min_count, plus_count, len(current_index))
                     reduced_index = sorted(np.random.choice(current_index, len(current_index) - min_count, replace=False)) # New list of index after reduction
                     added_index = sorted(np.random.choice(current_index, plus_count, replace=True))
 
