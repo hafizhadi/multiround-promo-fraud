@@ -17,7 +17,7 @@ class ReplayAdversary(BaseAdversary):
     def generate(self, graph, n_instances=1, return_ids=False, **kwargs):
         verPrint(self.verbose, 3, f'ReplayAdversary:generate | {n_instances} {return_ids}')
 
-        prio_pool = torch.tensor([], dtype=torch.long) if (not self.greedy_seed) else ((graph.ndata['predicted'] == True) & (graph.ndata['label'] == 1)).nonzero().flatten()
+        prio_pool = torch.tensor([], dtype=torch.long) if (not self.greedy_seed) else ((graph.ndata['predicted'] == False) & (graph.ndata['label'] == 1)).nonzero().flatten()
         return BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids, prio_pool=prio_pool)
 
 ######################
@@ -117,7 +117,7 @@ class AbsolutePerturbationAdversary(BasePerturbationAdversary):
     def generate(self, graph, n_instances=1, return_ids=False, is_random=True, **kwargs):
         verPrint(self.verbose, 3, f'AbsolutePerturbationAdversary:generate | {n_instances} {return_ids}')
 
-        prio_pool = torch.tensor([], dtype=torch.long) if (not self.greedy_seed) else ((graph.ndata['predicted'] == True) & (graph.ndata['label'] == 1)).nonzero().flatten()
+        prio_pool = torch.tensor([], dtype=torch.long) if (not self.greedy_seed) else ((graph.ndata['predicted'] == False) & (graph.ndata['label'] == 1)).nonzero().flatten()
         replay_node, replay_edge, old_ids, new_ids =  BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids, prio_pool=prio_pool)
 
         ## FEATURE PERTURBATION ##
