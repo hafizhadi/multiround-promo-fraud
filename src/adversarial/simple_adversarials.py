@@ -47,7 +47,7 @@ class BasePerturbationAdversary(BaseAdversary):
     
     @staticmethod
     def get_rewires(todos, edge_data, relname, baseid, verbose=0):
-        verPrint(verbose, 3, f'START - BasePerturbationAdversary:get_rewires | todos: {todos},  edge_data_shape: {edge_data.shape}, relname: {relname}, baseid: {baseid}')
+        verPrint(verbose, 3, f'START - BasePerturbationAdversary:get_rewires | todos: {todos},  edge_data: {edge_data}, relname: {relname}, baseid: {baseid}')
 
         reduceds, addeds = [], [] # Container
         for id, min_count, plus_count in todos:

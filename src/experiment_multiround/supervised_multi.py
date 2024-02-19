@@ -347,5 +347,4 @@ class MultiroundExperiment(object):
 
 
 # TODO: Try other dataset
-# TODO: Sanity check everything especially node addition process
 # TODO: Adjust perturbation to be percentage of current degree and mutation
