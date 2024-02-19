@@ -19,17 +19,53 @@ class ReplayAdversary(BaseAdversary):
 
         prio_pool = torch.tensor([], dtype=torch.long) if (not self.greedy_seed) else ((graph.ndata['detected'] == True) & (graph.ndata['label'] == 1)).nonzero().flatten()
         return BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids, prio_pool=prio_pool)
+
+######################
+# PERTURBATION BASED #
+######################
     
-class RelativePerturbationAdversary(BaseAdversary):
+class BasePerturbationAdversary(BaseAdversary):
     def __init__(self, feat_budget=1.0, conn_budget=0.1, greedy_seed=False, verbose=0, **kwargs):
         super().__init__()
         self.verbose=verbose       
-        verPrint(self.verbose, 3, f'RelativePerturbationAdversary:__init__ | {feat_budget} {conn_budget}')
+        verPrint(self.verbose, 3, f'{type(self).__name__}:__init__ | {feat_budget} {conn_budget}')
         
         self.greedy_seed = greedy_seed
         self.feat_budget = feat_budget
         self.conn_budget = conn_budget
     
+    @staticmethod
+    def get_rewires(todos, edge_data, relname, baseid):
+        reduceds, addeds = [], []
+        
+        for id, min_count, plus_count in todos:
+            current_index = (edge_data[relname]['in']['dst'] == id).nonzero().flatten().tolist() # All index of Node's edge
+
+            # Get index after reduction and index for addition base
+            reduced_index = sorted(np.random.choice(current_index, len(current_index) - min_count, replace=False)) # New list of index after reduction
+            added_index = sorted(np.random.choice(current_index, plus_count, replace=True))
+
+                # REDUCTION - Copy to new container
+            reduced_data = {}
+            reduced_data['in'] = { feat:edge_data[relname]['in'][feat][reduced_index].clone() for feat in edge_data[relname]['in'].keys() }
+            reduced_data['out'] = { feat:reduced_data['in'][feat].clone() for feat in reduced_data['in'].keys() }
+            reduced_data['out']['src'] = reduced_data['in']['dst'].clone()
+            reduced_data['out']['dst'] = reduced_data['in']['src'].clone()
+
+            # ADDITION - Rewire and add to new container
+            added_data = {}
+            added_data['in'] = { feat:edge_data[relname]['in'][feat][added_index].clone() for feat in edge_data[relname]['in'].keys() }
+            added_data['in']['src'] = torch.randint(baseid, added_data['in']['src'].shape) # Rewiring
+            added_data['out'] = { feat:added_data['in'][feat].clone() for feat in reduced_data['in'].keys() }
+            added_data['out']['src'] = added_data['in']['dst'].clone()
+            added_data['out']['dst'] = added_data['in']['src'].clone()
+
+            reduceds.append(reduced_data)
+            addeds.append(added_data)
+
+        return reduceds, addeds
+
+class RelativePerturbationAdversary(BasePerturbationAdversary):    
     def generate(self, graph, n_instances=1, return_ids=False, is_random=True, **kwargs):
         verPrint(self.verbose, 3, f'RelativePerturbationAdversary:generate | {n_instances} {return_ids}')
 
@@ -44,9 +80,8 @@ class RelativePerturbationAdversary(BaseAdversary):
         replay_node['feature'] = feats + perturb_final
 
         ## STRUCTURAL PERTURBATION ##
-        verPrint(self.verbose, 2, f'Perturbing each node at max for {self.conn_budget} times its degree...')
-
         # TODO: WORK ON DIRECTED VERSION
+        verPrint(self.verbose, 2, f'Perturbing each node at max for {self.conn_budget} times its degree...')
         if sum([(sorted(replay_edge[etype]['in']['src']) != sorted(replay_edge[etype]['out']['dst'])) and 
                 (sorted(replay_edge[etype]['in']['dst']) == sorted(replay_edge[etype]['out']['src'])) 
                 for etype in replay_edge.keys()]) == 0: # Check if graph undirected (same edges for ingoing and outgoing)
@@ -68,54 +103,17 @@ class RelativePerturbationAdversary(BaseAdversary):
 
                 perturb_minus = (perturb_minus - perturb_cancels).long()
                 perturb_plus = (perturb_amount - perturb_minus - perturb_cancels).long()
-                print(perturb_cancels)
 
                 # Final to-do list per node
-                to_dos = list(zip(new_ids.tolist(), perturb_minus.tolist(), perturb_plus.tolist()))
+                todos = list(zip(new_ids.tolist(), perturb_minus.tolist(), perturb_plus.tolist()))
+                reduceds, addeds = BasePerturbationAdversary.get_rewires(todos, replay_edge, val, min(new_ids))
 
-                # Iterate over all nodes
-                reduceds, addeds = [], []
-                for id, min_count, plus_count in to_dos:
-                    current_index = (replay_edge[val]['in']['dst'] == id).nonzero().flatten().tolist() # All index of Node's edge
-
-                    # Get index after reduction and index for addition base
-                    print(id, min_count, plus_count, len(current_index))
-                    reduced_index = sorted(np.random.choice(current_index, len(current_index) - min_count, replace=False)) # New list of index after reduction
-                    added_index = sorted(np.random.choice(current_index, plus_count, replace=True))
-
-                     # REDUCTION - Copy to new container
-                    reduced_data = {}
-                    reduced_data['in'] = { feat:replay_edge[val]['in'][feat][reduced_index].clone() for feat in replay_edge[val]['in'].keys() }
-                    reduced_data['out'] = { feat:reduced_data['in'][feat].clone() for feat in reduced_data['in'].keys() }
-                    reduced_data['out']['src'] = reduced_data['in']['dst'].clone()
-                    reduced_data['out']['dst'] = reduced_data['in']['src'].clone()
-
-                    # ADDITION - Rewire and add to new container
-                    added_data = {}
-                    added_data['in'] = { feat:replay_edge[val]['in'][feat][added_index].clone() for feat in replay_edge[val]['in'].keys() }
-                    added_data['in']['src'] = torch.randint(min(new_ids), added_data['in']['src'].shape) # Rewiring
-                    added_data['out'] = { feat:added_data['in'][feat].clone() for feat in reduced_data['in'].keys() }
-                    added_data['out']['src'] = added_data['in']['dst'].clone()
-                    added_data['out']['dst'] = added_data['in']['src'].clone()
-
-                    reduceds.append(reduced_data)
-                    addeds.append(added_data)
-
-                replay_edge[val]['in'] = { feat: torch.cat([d['in'][feat] for d in reduceds + addeds]) for feat in reduced_data['in'].keys() }
-                replay_edge[val]['out'] = { feat: torch.cat([d['out'][feat] for d in reduceds + addeds]) for feat in reduced_data['out'].keys() }
+                replay_edge[val]['in'] = { feat: torch.cat([d['in'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['in'].keys() }
+                replay_edge[val]['out'] = { feat: torch.cat([d['out'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['out'].keys() }
         
         return replay_node, replay_edge, old_ids, new_ids
 
-class AbsolutePerturbationAdversary(BaseAdversary):
-    def __init__(self, feat_budget=1, conn_budget=10, greedy_seed=False, verbose=0, **kwargs):
-        super().__init__()
-        self.verbose=verbose       
-        verPrint(self.verbose, 3, f'AbsolutePerturbationAdversary:__init__ | {feat_budget} {conn_budget}')
-        
-        self.greedy_seed = greedy_seed
-        self.feat_budget = feat_budget
-        self.conn_budget = conn_budget
-    
+class AbsolutePerturbationAdversary(BasePerturbationAdversary):    
     def generate(self, graph, n_instances=1, return_ids=False, is_random=True, **kwargs):
         verPrint(self.verbose, 3, f'AbsolutePerturbationAdversary:generate | {n_instances} {return_ids}')
 
@@ -133,9 +131,8 @@ class AbsolutePerturbationAdversary(BaseAdversary):
         replay_node['feature'] = feats + perturb_final
 
         ## STRUCTURAL PERTURBATION ##
-        verPrint(self.verbose, 2, f'Perturbing structure with budget {self.conn_budget}...')
-
         # TODO: WORK ON DIRECTED VERSION
+        verPrint(self.verbose, 2, f'Perturbing structure with budget {self.conn_budget}...')
         if sum([(sorted(replay_edge[etype]['in']['src']) != sorted(replay_edge[etype]['out']['dst'])) and 
                 (sorted(replay_edge[etype]['in']['dst']) == sorted(replay_edge[etype]['out']['src'])) 
                 for etype in replay_edge.keys()]) == 0: # Check if graph undirected (same edges for ingoing and outgoing)
@@ -168,36 +165,10 @@ class AbsolutePerturbationAdversary(BaseAdversary):
                 perturb_plus = (perturb_amount - perturb_minus - perturb_cancels).long()
 
                 # Final to-do list per node
-                to_dos = list(zip(new_ids.tolist(), perturb_minus.tolist(), perturb_plus.tolist()))
+                todos = list(zip(new_ids.tolist(), perturb_minus.tolist(), perturb_plus.tolist()))
+                reduceds, addeds = BasePerturbationAdversary.get_rewires(todos, replay_edge, val, min(new_ids))
 
-                # Iterate over all nodes
-                reduceds, addeds = [], []
-                for id, min_count, plus_count in to_dos:
-                    current_index = (replay_edge[val]['in']['dst'] == id).nonzero().flatten().tolist() # All index of Node's edge
-
-                    # Get index after reduction and index for addition base
-                    reduced_index = sorted(np.random.choice(current_index, len(current_index) - min_count, replace=False)) # New list of index after reduction
-                    added_index = sorted(np.random.choice(current_index, plus_count, replace=True))
-
-                     # REDUCTION - Copy to new container
-                    reduced_data = {}
-                    reduced_data['in'] = { feat:replay_edge[val]['in'][feat][reduced_index].clone() for feat in replay_edge[val]['in'].keys() }
-                    reduced_data['out'] = { feat:reduced_data['in'][feat].clone() for feat in reduced_data['in'].keys() }
-                    reduced_data['out']['src'] = reduced_data['in']['dst'].clone()
-                    reduced_data['out']['dst'] = reduced_data['in']['src'].clone()
-
-                    # ADDITION - Rewire and add to new container
-                    added_data = {}
-                    added_data['in'] = { feat:replay_edge[val]['in'][feat][added_index].clone() for feat in replay_edge[val]['in'].keys() }
-                    added_data['in']['src'] = torch.randint(min(new_ids), added_data['in']['src'].shape) # Rewiring
-                    added_data['out'] = { feat:added_data['in'][feat].clone() for feat in reduced_data['in'].keys() }
-                    added_data['out']['src'] = added_data['in']['dst'].clone()
-                    added_data['out']['dst'] = added_data['in']['src'].clone()
-
-                    reduceds.append(reduced_data)
-                    addeds.append(added_data)
-
-                replay_edge[val]['in'] = { feat: torch.cat([d['in'][feat] for d in reduceds + addeds]) for feat in reduced_data['in'].keys() }
-                replay_edge[val]['out'] = { feat: torch.cat([d['out'][feat] for d in reduceds + addeds]) for feat in reduced_data['out'].keys() }
+                replay_edge[val]['in'] = { feat: torch.cat([d['in'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['in'].keys() }
+                replay_edge[val]['out'] = { feat: torch.cat([d['out'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['out'].keys() }
         
         return replay_node, replay_edge, old_ids, new_ids
