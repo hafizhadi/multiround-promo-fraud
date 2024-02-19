@@ -52,7 +52,7 @@ class BaseAdversary():
             new_edge_features[etype]['out']['dst'] = out_dst
         
         # Return
-        verPrint(verbose, 3, f'FINISH - BaseAdversary:random_duplicate | new_node_shape: {new_node_features.shape},  new_edge_shape: {new_edge_features.shape}, old_ids: {old_ids}, new_ids: {new_ids}')
+        verPrint(verbose, 3, f'FINISH - BaseAdversary:random_duplicate | new_node_feats: {new_node_features},  new_edge_feats: {new_edge_features}, old_ids: {old_ids}, new_ids: {new_ids}')
         if return_ids:
             return new_node_features, new_edge_features, old_ids, new_ids
         else:
