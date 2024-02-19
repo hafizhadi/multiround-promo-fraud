@@ -68,6 +68,7 @@ class RelativePerturbationAdversary(BaseAdversary):
 
                 perturb_minus = (perturb_minus - perturb_cancels).long()
                 perturb_plus = (perturb_amount - perturb_minus - perturb_cancels).long()
+                print(perturb_cancels)
 
                 # Final to-do list per node
                 to_dos = list(zip(new_ids.tolist(), perturb_minus.tolist(), perturb_plus.tolist()))
