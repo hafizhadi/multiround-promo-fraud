@@ -6,6 +6,10 @@ from collections import Counter
 from adversarial.adversarial import BaseAdversary
 from utils_func import verPrint
 
+#################
+# SIMPLE REPLAY #
+#################
+
 class ReplayAdversary(BaseAdversary):
     def __init__(self, greedy_seed=False, verbose=0, **kwargs):
         super().__init__()
@@ -65,51 +69,48 @@ class BasePerturbationAdversary(BaseAdversary):
 
         return reduceds, addeds
 
+    @staticmethod
+    def split_connection_budget(degrees, perturb_amount):
+        # Split amount to deletion and addition
+        max_minus = ((degrees + perturb_amount) / 2).floor() - 1 # Maximum deletion possible, - 1 to prevent 0 degree node
+        perturb_minus = torch.minimum(((torch.rand(degrees.shape) * perturb_amount).round()), max_minus) # Deletion count capped by the max
+        perturb_cancels = torch.minimum((degrees - perturb_minus), torch.zeros(degrees.shape)).abs() # Amount of plus and minus that cancels out if any
+
+        perturb_minus = (perturb_minus - perturb_cancels).long()
+        perturb_plus = (perturb_amount - perturb_minus - perturb_cancels).long()
+
+        return perturb_minus, perturb_plus
+
 class RelativePerturbationAdversary(BasePerturbationAdversary):    
     def generate(self, graph, n_instances=1, return_ids=False, is_random=True, **kwargs):
         verPrint(self.verbose, 3, f'RelativePerturbationAdversary:generate | {n_instances} {return_ids}')
-
         prio_pool = torch.tensor([], dtype=torch.long) if (not self.greedy_seed) else ((graph.ndata['predicted'] == False) & (graph.ndata['label'] == 1)).nonzero().flatten()
         replay_node, replay_edge, old_ids, new_ids =  BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids, prio_pool=prio_pool)
 
         ## FEATURE PERTURBATION ##
         verPrint(self.verbose, 2, f'Perturbing each feature at max for {self.feat_budget} times its stdev...')
-
         feats = replay_node['feature'].clone()
         perturb_final = torch.std(feats, dim=0) * ((torch.rand(feats.shape) - 0.5) * 2) * self.feat_budget
         replay_node['feature'] = feats + perturb_final
 
         ## STRUCTURAL PERTURBATION ##
         # TODO: WORK ON DIRECTED VERSION
-        verPrint(self.verbose, 2, f'Perturbing each node at max for {self.conn_budget} times its degree...')
-        if sum([(sorted(replay_edge[etype]['in']['src']) != sorted(replay_edge[etype]['out']['dst'])) and 
-                (sorted(replay_edge[etype]['in']['dst']) == sorted(replay_edge[etype]['out']['src'])) 
-                for etype in replay_edge.keys()]) == 0: # Check if graph undirected (same edges for ingoing and outgoing)
+        rels = [r for r in graph.etypes if r != 'homo'] # Exception for H2F
+        for val in rels:
+            verPrint(self.verbose, 2, f'Perturbing structure for relation {val} at most for {self.conn_budget} times its degree')
+
+            # Get randomized perturbation amount based on the max budget
+            counter = dict(Counter(replay_edge[val]['in']['dst'].tolist()))
+            degrees = torch.tensor([counter[id] for id in new_ids.tolist()], dtype=torch.long)
+            perturb_amount = (degrees * torch.rand(degrees.shape) * self.conn_budget).round()
+            perturb_minus, perturb_plus = BasePerturbationAdversary(degrees, perturb_amount)
             
-            # Iterate over relation type
-            rels = [r for r in graph.etypes if r != 'homo'] # Exception for H2F
-            for val in rels:
-                verPrint(self.verbose, 2, f'Perturbing structure for relation {val} at most for {self.conn_budget} times its degree')
+            # Final to-do list per node
+            todos = list(zip(new_ids.tolist(), perturb_minus.tolist(), perturb_plus.tolist()))
+            reduceds, addeds = BasePerturbationAdversary.get_rewires(todos, replay_edge, val, min(new_ids))
 
-                # Get randomized perturbation amount based on the max budget
-                counter = dict(Counter(replay_edge[val]['in']['dst'].tolist()))
-                degrees = torch.tensor([counter[id] for id in new_ids.tolist()], dtype=torch.long)
-                perturb_amount = (degrees * torch.rand(degrees.shape) * self.conn_budget).round()
-
-                # Split amount to deletion and addition
-                max_minus = ((degrees + perturb_amount) / 2).floor() - 1 # Maximum deletion possible, - 1 to prevent 0 degree node
-                perturb_minus = torch.minimum(((torch.rand(degrees.shape) * perturb_amount).round()), max_minus) # Deletion count capped by the max
-                perturb_cancels = torch.minimum((degrees - perturb_minus), torch.zeros(degrees.shape)).abs() # Amount of plus and minus that cancels out if any
-
-                perturb_minus = (perturb_minus - perturb_cancels).long()
-                perturb_plus = (perturb_amount - perturb_minus - perturb_cancels).long()
-
-                # Final to-do list per node
-                todos = list(zip(new_ids.tolist(), perturb_minus.tolist(), perturb_plus.tolist()))
-                reduceds, addeds = BasePerturbationAdversary.get_rewires(todos, replay_edge, val, min(new_ids))
-
-                replay_edge[val]['in'] = { feat: torch.cat([d['in'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['in'].keys() }
-                replay_edge[val]['out'] = { feat: torch.cat([d['out'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['out'].keys() }
+            replay_edge[val]['in'] = { feat: torch.cat([d['in'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['in'].keys() }
+            replay_edge[val]['out'] = { feat: torch.cat([d['out'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['out'].keys() }
         
         return replay_node, replay_edge, old_ids, new_ids
 
@@ -133,42 +134,31 @@ class AbsolutePerturbationAdversary(BasePerturbationAdversary):
         ## STRUCTURAL PERTURBATION ##
         # TODO: WORK ON DIRECTED VERSION
         verPrint(self.verbose, 2, f'Perturbing structure with budget {self.conn_budget}...')
-        if sum([(sorted(replay_edge[etype]['in']['src']) != sorted(replay_edge[etype]['out']['dst'])) and 
-                (sorted(replay_edge[etype]['in']['dst']) == sorted(replay_edge[etype]['out']['src'])) 
-                for etype in replay_edge.keys()]) == 0: # Check if graph undirected (same edges for ingoing and outgoing)
-
-            # Split budget over all edge relations
-            rels = [r for r in graph.etypes if r != 'homo'] # Exception for H2F
-            rounding_error = 1
-            while rounding_error != 0:
-                perturb_weight = torch.rand((1, len(rels)))
-                perturb_weight = perturb_weight / perturb_weight.sum(dim=1).unsqueeze(1)
-                rel_budgets = (perturb_weight * self.conn_budget).round().long()
-                rounding_error = rel_budgets.sum() - self.conn_budget
-            
-            # Iterate over relation type
-            for idx, val in enumerate(rels):
-                rel_budget = rel_budgets[idx]
-                verPrint(self.verbose, 2, f'Perturbing structure for relation {val} with budget {rel_budget}')
-
-                # Get randomized perturbation amount based on the max budget
-                counter = dict(Counter(replay_edge[val]['in']['dst'].tolist()))
-                degrees = torch.tensor([counter[id] for id in new_ids.tolist()], dtype=torch.long)
-                perturb_amount = torch.randint(0, rel_budget + 1, degrees.shape)
-
-                # Split amount to deletion and addition
-                max_minus = ((degrees + rel_budget) / 2).floor() - 1 # Maximum deletion possible, - 1 to prevent 0 degree node
-                perturb_minus = torch.minimum(((torch.rand(degrees.shape) * perturb_amount).round()), max_minus) # Deletion count capped by the max
-                perturb_cancels = torch.minimum((degrees - perturb_minus), torch.zeros(degrees.shape)).abs() # Amount of plus and minus that cancels out if any
-
-                perturb_minus = (perturb_minus - perturb_cancels).long()
-                perturb_plus = (perturb_amount - perturb_minus - perturb_cancels).long()
-
-                # Final to-do list per node
-                todos = list(zip(new_ids.tolist(), perturb_minus.tolist(), perturb_plus.tolist()))
-                reduceds, addeds = BasePerturbationAdversary.get_rewires(todos, replay_edge, val, min(new_ids))
-
-                replay_edge[val]['in'] = { feat: torch.cat([d['in'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['in'].keys() }
-                replay_edge[val]['out'] = { feat: torch.cat([d['out'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['out'].keys() }
         
+        rels = [r for r in graph.etypes if r != 'homo'] # Exception for H2F
+        rounding_error = 1
+        while rounding_error != 0: # Split budget over all edge relations
+            perturb_weight = torch.rand((1, len(rels)))
+            perturb_weight = perturb_weight / perturb_weight.sum(dim=1).unsqueeze(1)
+            rel_budgets = (perturb_weight * self.conn_budget).round().long()
+            rounding_error = rel_budgets.sum() - self.conn_budget
+        
+        # Iterate over relation type
+        for idx, val in enumerate(rels):
+            rel_budget = rel_budgets[idx]
+            verPrint(self.verbose, 2, f'Perturbing structure for relation {val} with budget {rel_budget}')
+
+            # Get randomized perturbation amount based on the max budget
+            counter = dict(Counter(replay_edge[val]['in']['dst'].tolist()))
+            degrees = torch.tensor([counter[id] for id in new_ids.tolist()], dtype=torch.long)
+            perturb_amount = torch.randint(0, rel_budget + 1, degrees.shape)
+            perturb_minus, perturb_plus = BasePerturbationAdversary.split_connection_budget(degrees, rel_budget)
+
+            # Final to-do list per node
+            todos = list(zip(new_ids.tolist(), perturb_minus.tolist(), perturb_plus.tolist()))
+            reduceds, addeds = BasePerturbationAdversary.get_rewires(todos, replay_edge, val, min(new_ids))
+
+            replay_edge[val]['in'] = { feat: torch.cat([d['in'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['in'].keys() }
+            replay_edge[val]['out'] = { feat: torch.cat([d['out'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['out'].keys() }
+    
         return replay_node, replay_edge, old_ids, new_ids
