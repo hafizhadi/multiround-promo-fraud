@@ -7,22 +7,26 @@ from adversarial.adversarial import BaseAdversary
 from utils_func import verPrint
 
 class ReplayAdversary(BaseAdversary):
-    def __init__(self, verbose=0, **kwargs):
+    def __init__(self, greedy_seed=False, verbose=0, **kwargs):
         super().__init__()
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'ReplayAdversary:__init__')
+        
+        self.greedy_seed = greedy_seed
     
-    def generate(self, graph, n_instances=1, return_ids=False, is_random=True, **kwargs):
+    def generate(self, graph, n_instances=1, return_ids=False, **kwargs):
         verPrint(self.verbose, 3, f'ReplayAdversary:generate | {n_instances} {return_ids}')
-        return BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids)
+
+        prio_pool = [] if (not self.greedy_seed) else ((graph.ndata['detected'] == True) & (graph.ndata['label'] == 1)).nonzero().flatten()
+        return BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids, prio_pool=prio_pool)
     
 class PerturbationAdversary(BaseAdversary):
-    def __init__(self, feat_budget, conn_budget, verbose=0, **kwargs):
+    def __init__(self, feat_budget=1, conn_budget=10, greedy_seed=False, verbose=0, **kwargs):
         super().__init__()
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'PerturbationAdversary:__init__ | {feat_budget} {conn_budget}')
         
-
+        self.greedy_seed = greedy_seed
         self.feat_budget = feat_budget
         self.conn_budget = conn_budget
     

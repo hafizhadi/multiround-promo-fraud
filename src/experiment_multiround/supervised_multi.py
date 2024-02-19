@@ -34,6 +34,7 @@ class MultiroundExperiment(object):
         # Initialize round information
         self.current_round, self.rounds = 0, []
         self.dset['graph'].ndata['creation_round'] = torch.full([graph.num_nodes()], 0, dtype=torch.long)
+        self.dset['graph'].ndata['predicted'] = torch.full([graph.num_nodes()], False, dtype=torch.bool)
     
     # Initialize model
     def init_model(self):
@@ -269,6 +270,8 @@ class MultiroundExperiment(object):
 
         # Add nodes
         new_nodes['creation_round'] = torch.full([len(new_nodes['label'])], self.current_round)
+        new_nodes['predicted'] = torch.full([len(new_nodes['label'])], False)
+
         new_nodes['train_mask'] = torch.full([len(new_nodes['label'])], 0).bool()
         new_nodes['val_mask'] = torch.full([len(new_nodes['label'])], 0).bool()
         new_nodes['test_mask'] = torch.full([len(new_nodes['label'])], 1).bool()
@@ -323,6 +326,9 @@ class MultiroundExperiment(object):
 
         # Predict
         self.rounds[round]['preds'], self.rounds[round]['probs'], self.rounds[round]['checks'] = self.model_round_predict()
+        self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][0]] = self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][0]] | True
+        self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][0]] = self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][1]] | True
+
         round_mask = (self.dset['graph'].ndata['creation_round'] == round).nonzero().flatten()
         non_round_mask = (self.dset['graph'].ndata['creation_round'] < round).nonzero().flatten()
         labels = self.dset['graph'].ndata['label']
@@ -339,3 +345,7 @@ class MultiroundExperiment(object):
             _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Seeds - Current')
             _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round-1]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Seeds - Prev')
 
+
+# TODO: Try other dataset
+# TODO: Sanity check everything especially node addition process
+# TODO: Adjust perturbation to be percentage of current degree and mutation

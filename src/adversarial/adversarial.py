@@ -13,7 +13,7 @@ class BaseAdversary():
         return 0
     
     @staticmethod
-    def random_duplicate(graph, n_instances=1, label=None, return_ids=False):
+    def random_duplicate(graph, n_instances=1, label=None, return_ids=False, prio_pool=torch.tensor([], dtype=torch.long)):
         """_summary_
 
         Args:
@@ -21,14 +21,24 @@ class BaseAdversary():
             n_instances (int, optional): _description_. Defaults to 1.
             label (_type_, optional): _description_. Defaults to None.
             return_ids (bool, optional): _description_. Defaults to False.
+            prio_pool (_type_, optional): _description_. Defaults to None.
 
         Returns:
             _type_: _description_
         """
-        pool_ids = torch.LongTensor(range(graph.num_nodes())) if label == None else (graph.ndata['label'] == label).nonzero().flatten()
-        old_ids = pool_ids[random.choice(list(range(len(pool_ids))), size=n_instances, replace=False)]
-        new_ids = (torch.tensor(list(range(len(old_ids)))) + graph.num_nodes()).int()
-        id_dict = dict(zip(old_ids.tolist(), new_ids.tolist()))
+        prio_instances = min([prio_pool.shape[0], n_instances])
+        rest_instances = max([0, n_instances - prio_pool.shape[0]])
+
+        pool_ids = list(range(graph.num_nodes()), dtype=torch.long) if label == None else (graph.ndata['label'] == label).nonzero().flatten().tolist()
+        pool_ids = torch.tensor(list(set(pool_ids) - set(prio_pool.tolist())), dtype=torch.long)
+
+        old_ids = torch.cat([
+            prio_pool[random.choice(list(range(len(prio_pool))), size=prio_instances, replace=False)],
+            pool_ids[random.choice(list(range(len(pool_ids))), size=rest_instances, replace=False)]
+        ])
+        
+        new_ids = (torch.tensor(list(range(len(old_ids)))) + graph.num_nodes()).int() # Tensor
+        id_dict = dict(zip(old_ids.tolist(), new_ids.tolist())) # Dict
 
         new_node_features = { 
             key: graph.ndata[key][old_ids] for key, _v in graph.node_attr_schemes().items() if key != '_ID'
