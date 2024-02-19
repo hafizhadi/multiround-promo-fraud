@@ -59,7 +59,7 @@ class RelativePerturbationAdversary(BaseAdversary):
                 # Get randomized perturbation amount based on the max budget
                 counter = dict(Counter(replay_edge[val]['in']['dst'].tolist()))
                 degrees = torch.tensor([counter[id] for id in new_ids.tolist()], dtype=torch.long)
-                perturb_amount = (degrees * torch.rand(feats.shape) * self.conn_budget).round()
+                perturb_amount = (degrees * torch.rand(degrees.shape) * self.conn_budget).round()
 
                 # Split amount to deletion and addition
                 max_minus = ((degrees + perturb_amount) / 2).floor() - 1 # Maximum deletion possible, - 1 to prevent 0 degree node
