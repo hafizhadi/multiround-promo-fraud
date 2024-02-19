@@ -11,13 +11,13 @@ class ReplayAdversary(BaseAdversary):
         super().__init__()
         self.verbose=verbose       
         verPrint(self.verbose, 3, f'ReplayAdversary:__init__')
-        
+
         self.greedy_seed = greedy_seed
     
     def generate(self, graph, n_instances=1, return_ids=False, **kwargs):
         verPrint(self.verbose, 3, f'ReplayAdversary:generate | {n_instances} {return_ids}')
 
-        prio_pool = [] if (not self.greedy_seed) else ((graph.ndata['detected'] == True) & (graph.ndata['label'] == 1)).nonzero().flatten()
+        prio_pool = torch.tensor([], dtype=torch.long) if (not self.greedy_seed) else ((graph.ndata['detected'] == True) & (graph.ndata['label'] == 1)).nonzero().flatten()
         return BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids, prio_pool=prio_pool)
     
 class PerturbationAdversary(BaseAdversary):
@@ -33,7 +33,8 @@ class PerturbationAdversary(BaseAdversary):
     def generate(self, graph, n_instances=1, return_ids=False, is_random=True, **kwargs):
         verPrint(self.verbose, 3, f'PerturbationAdversary:generate | {n_instances} {return_ids}')
 
-        replay_node, replay_edge, old_ids, new_ids =  BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids)
+        prio_pool = torch.tensor([], dtype=torch.long) if (not self.greedy_seed) else ((graph.ndata['detected'] == True) & (graph.ndata['label'] == 1)).nonzero().flatten()
+        replay_node, replay_edge, old_ids, new_ids =  BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids, prio_pool=prio_pool)
 
         ## FEATURE PERTURBATION ##
         verPrint(self.verbose, 2, f'Perturbing feature with budget {self.feat_budget}...')
