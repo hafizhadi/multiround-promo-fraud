@@ -327,7 +327,7 @@ class MultiroundExperiment(object):
         # Predict
         self.rounds[round]['preds'], self.rounds[round]['probs'], self.rounds[round]['checks'] = self.model_round_predict()
         self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][0]] = self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][0]] | True
-        self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][0]] = self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][1]] | True
+        self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][1]] = self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][1]] | True
 
         round_mask = (self.dset['graph'].ndata['creation_round'] == round).nonzero().flatten()
         non_round_mask = (self.dset['graph'].ndata['creation_round'] < round).nonzero().flatten()
