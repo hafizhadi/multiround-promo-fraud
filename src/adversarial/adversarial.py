@@ -4,8 +4,9 @@ import numpy as np
 from numpy import random
 from utils_func import verPrint
 
-
-### BASE ADVERSARIAL CLASS ###
+##########################
+# BASE ADVERSARIAL CLASS #
+##########################
 class BaseAdversary():
     def __init__(self, verbose=0):
         pass

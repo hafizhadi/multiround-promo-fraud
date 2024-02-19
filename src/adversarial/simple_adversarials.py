@@ -77,7 +77,7 @@ class BasePerturbationAdversary(BaseAdversary):
             reduceds.append(reduced_data)
             addeds.append(added_data)
 
-        verPrint(verbose, 3, f'Finish - BasePerturbationAdversary:get_rewires | todos: reduceds_shape: {reduceds.shape}, addeds_shape: {addeds.shape}')
+        verPrint(verbose, 3, f'Finish - BasePerturbationAdversary:get_rewires | todos: reduceds: {reduceds}, addeds: {addeds}')
         return reduceds, addeds
 
     @staticmethod
