@@ -186,7 +186,7 @@ class MultiroundExperiment(object):
             preds = np.zeros_like(labels)
             preds[probs[:, 1] > thres] = 1
 
-            trec, tpre, tmf1, tauc = eval_and_print(0, labels[self.dset['graph'].ndata['test_mask']], preds[self.dset['graph'].ndata['test_mask']], probs[self.dset['graph'].ndata['test_mask']][:, 1], f'Epoch {e}')
+            (trec, tpre, tmf1, tauc), _ = eval_and_print(0, labels[self.dset['graph'].ndata['test_mask']], preds[self.dset['graph'].ndata['test_mask']], probs[self.dset['graph'].ndata['test_mask']][:, 1], f'Epoch {e}')
             if best_f1 < f1:
                 best_f1 = f1
                 final_trec = trec
