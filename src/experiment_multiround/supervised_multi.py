@@ -48,6 +48,55 @@ class MultiroundExperiment(object):
     def init_adversarial(self):
         self.adver = adversarial_dict[self.adver_config['adver_name']](**self.adver_config)
 
+    # Get budgeted ground truth for the round
+    def get_round_budget(self, round):
+        # POSITIVES
+        all_new_positives = ((self.dset['graph'].ndata['creation_round'] > 0) & (self.dset['graph'].ndata['label'] == 1)).nonzero().flatten().tolist()
+        predicted_new_positives = torch.cat([self.rounds[i]['checks'][0] for i in list(range(round))], 0).tolist()
+        budget_new_positives = torch.cat([self.rounds[i]['budgets'][0] for i in list(range(round))], 0).tolist()
+        
+        positive_budget_pool = list(set(all_new_positives) - set(predicted_new_positives) - set(budget_new_positives))
+        round_budget = min([len(positive_budget_pool), self.train_config['round_budget_pos']])
+        positive_budgets = torch.tensor(random.choice(positive_budget_pool, round_budget, replace=False))         
+        
+        # NEGATIVES
+        base_negatives = ((self.dset['graph'].ndata['creation_round'] == 0) & (self.dset['graph'].ndata['label'] == 0)).nonzero().flatten().tolist()
+        predicted_new_negatives = torch.cat([self.rounds[i]['checks'][1] for i in list(range(round))], 0).tolist()
+
+        negative_budget_pool = list(set(base_negatives).union(predicted_new_negatives))
+        negative_budgets = torch.tensor(random.choice(negative_budget_pool, self.train_config['round_budget_neg'], replace=False))
+
+        return positive_budgets, negative_budgets
+
+    # adver generation of new positive instances
+    def adversary_round_generate(self):
+        return self.adver.generate(self.dset['graph'], n_instances=self.train_config['round_new_pos'], return_ids=True)
+    
+    # Generate negative instances
+    def round_generate_negatives(self):
+        return BaseAdversary.random_duplicate(self.dset['graph'], n_instances=self.train_config['round_new_neg'], label=0, return_ids=True)
+    
+    # Add generated new nodes to graph
+    def add_generated_data(self, data):
+        new_nodes, new_edges = data
+
+        # Add nodes
+        new_nodes['creation_round'] = torch.full([len(new_nodes['label'])], self.current_round)
+        new_nodes['predicted'] = torch.full([len(new_nodes['label'])], False)
+
+        new_nodes['train_mask'] = torch.full([len(new_nodes['label'])], 0).bool()
+        new_nodes['val_mask'] = torch.full([len(new_nodes['label'])], 0).bool()
+        new_nodes['test_mask'] = torch.full([len(new_nodes['label'])], 1).bool()
+        self.dset['graph'].add_nodes(len(new_nodes['label']), new_nodes)
+        
+        # Add edges TODO: edge features?
+        for etype in new_edges.keys():        
+            for dir in new_edges[etype].keys(): # Incoming and outcoming edges
+                edge_src = new_edges[etype][dir]['src'].long()
+                edge_dst = new_edges[etype][dir]['dst'].long()
+                del new_edges[etype][dir]['src'], new_edges[etype][dir]['dst']        
+                self.dset['graph'].add_edges(edge_src, edge_dst, etype=etype)
+    
     # Split train test
     def split_train_test(self, round, all_data=True):
         
@@ -59,7 +108,7 @@ class MultiroundExperiment(object):
 
         if round == 0:
             full_pool = torch.arange(len(labels), dtype=torch.long)
-        else:
+        else: # TODO: Use only correct predictions from node generated on previous round AND no test set on round train
             initial_pool = (self.dset['graph'].ndata['creation_round'] == 0).nonzero().flatten() if all_data else torch.tensor([], dtype=torch.long) # Base ground truth
             positive_preds = torch.cat([torch.cat(self.rounds[i]['checks'][:1], 0) for i in (list(range(round)) if all_data else [round-1])], 0) # Additional ground truths from correct guess
             budgets = torch.cat([torch.cat(self.rounds[i]['budgets'], 0) for i in (list(range(round + 1)) if all_data else [round])], 0) # Ground truth from round budgets            
@@ -92,26 +141,6 @@ class MultiroundExperiment(object):
         self.train_config['ce_weight'] = (1-labels[self.dset['graph'].ndata['train_mask']]).sum().item() / labels[self.dset['graph'].ndata['train_mask']].sum().item()
 
         return idx_train, idx_valid, idx_test, y_train, y_valid, y_test
-
-    # Get budgeted ground truth for the round
-    def get_round_budget(self, round):
-        # POSITIVES
-        all_new_positives = ((self.dset['graph'].ndata['creation_round'] > 0) & (self.dset['graph'].ndata['label'] == 1)).nonzero().flatten().tolist()
-        predicted_new_positives = torch.cat([self.rounds[i]['checks'][0] for i in list(range(round))], 0).tolist()
-        budget_new_positives = torch.cat([self.rounds[i]['budgets'][0] for i in list(range(round))], 0).tolist()
-        
-        positive_budget_pool = list(set(all_new_positives) - set(predicted_new_positives) - set(budget_new_positives))
-        round_budget = min([len(positive_budget_pool), self.train_config['round_budget_pos']])
-        positive_budgets = torch.tensor(random.choice(positive_budget_pool, round_budget, replace=False))         
-        
-        # NEGATIVES
-        base_negatives = ((self.dset['graph'].ndata['creation_round'] == 0) & (self.dset['graph'].ndata['label'] == 0)).nonzero().flatten().tolist()
-        predicted_new_negatives = torch.cat([self.rounds[i]['checks'][1] for i in list(range(round))], 0).tolist()
-
-        negative_budget_pool = list(set(base_negatives).union(predicted_new_negatives))
-        negative_budgets = torch.tensor(random.choice(negative_budget_pool, self.train_config['round_budget_neg'], replace=False))
-
-        return positive_budgets, negative_budgets
 
     # Train model normally on entire dataset
     def model_train(self):
@@ -199,7 +228,7 @@ class MultiroundExperiment(object):
         verPrint(self.verbose, 1, 'Test: REC {:.2f} PRE {:.2f} MF1 {:.2f} AUC {:.2f}'.format(final_trec*100, final_tpre*100, final_tmf1*100, final_tauc*100))
         verPrint(self.verbose, 1, 'Ending training!\n=========')
         return final_tmf1, final_tauc
-    
+
     # Round training using additional data on round
     def model_round_train(self, round):
         # Prepare training data for the round
@@ -255,35 +284,6 @@ class MultiroundExperiment(object):
     def adversary_round_train(self):
         return
 
-    # adver generation of new positive instances
-    def adversary_round_generate(self):
-        return self.adver.generate(self.dset['graph'], n_instances=self.train_config['round_new_pos'], return_ids=True)
-    
-    # Generate negative instances
-    def round_generate_negatives(self):
-        return BaseAdversary.random_duplicate(self.dset['graph'], n_instances=self.train_config['round_new_neg'], label=0, return_ids=True)
-    
-    # Add generated new nodes to graph
-    def add_generated_data(self, data):
-        new_nodes, new_edges = data
-
-        # Add nodes
-        new_nodes['creation_round'] = torch.full([len(new_nodes['label'])], self.current_round)
-        new_nodes['predicted'] = torch.full([len(new_nodes['label'])], False)
-
-        new_nodes['train_mask'] = torch.full([len(new_nodes['label'])], 0).bool()
-        new_nodes['val_mask'] = torch.full([len(new_nodes['label'])], 0).bool()
-        new_nodes['test_mask'] = torch.full([len(new_nodes['label'])], 1).bool()
-        self.dset['graph'].add_nodes(len(new_nodes['label']), new_nodes)
-        
-        # Add edges TODO: edge features?
-        for etype in new_edges.keys():        
-            for dir in new_edges[etype].keys(): # Incoming and outcoming edges
-                edge_src = new_edges[etype][dir]['src'].long()
-                edge_dst = new_edges[etype][dir]['dst'].long()
-                del new_edges[etype][dir]['src'], new_edges[etype][dir]['dst']        
-                self.dset['graph'].add_edges(edge_src, edge_dst, etype=etype)
-    
     # Execute 1 adver round based on the current state of the experiment
     def adver_round(self, round):
         verPrint(self.verbose, 1, f'\n=========\nSTARTING ROUND {round}!\n=========')
