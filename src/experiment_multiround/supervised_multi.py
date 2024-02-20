@@ -219,7 +219,7 @@ class MultiroundExperiment(object):
             preds[probs[:, 1] > thres] = 1
 
             _p, _cm  = eval_and_print(0, labels[self.dset['graph'].ndata['test_mask']], preds[self.dset['graph'].ndata['test_mask']], probs[self.dset['graph'].ndata['test_mask']][:, 1], f'Epoch {e}')
-            self.rounds[self.current_round]['log_eval'].append((f'Round {self.current_round}', f'Epoch {e}', f'{epoch_loss:.4f}') + _p + _cm)
+            self.rounds[self.current_round]['log_train'].append((f'Round {self.current_round}', f'Epoch {e}', f'{epoch_loss:.4f}') + _p + _cm)
 
             trec, tpre, tmf1, tauc = _p
             if best_f1 < f1:
@@ -338,7 +338,7 @@ class MultiroundExperiment(object):
         
         verPrint(self.verbose, 1, 'PREDICTION RESULT - DATASET')
         _p, _cm = eval_and_print(self.verbose, labels, self.rounds[round]['preds'], self.rounds[round]['probs'], 'Dataset - Overall')
-        self.rounds[round]['log_train'].append((f'Round {round}', 'Overall') + _p + _cm)
+        self.rounds[round]['log_eval'].append((f'Round {round}', 'Overall') + _p + _cm)
 
         if round > 0:
             if self.verbose < 3:
@@ -350,16 +350,16 @@ class MultiroundExperiment(object):
                 for i in range(round):
                     i_round_mask = (self.dset['graph'].ndata['creation_round'] == i).nonzero().flatten()
                     _p, _cm = eval_and_print(self.verbose, labels[i_round_mask], self.rounds[round]['preds'][i_round_mask], self.rounds[round]['probs'][i_round_mask], f'Dataset - Round {i}')
-                    self.rounds[round]['log_train'].append((f'Round {round}', f'Round {i} nodes') + _p + _cm)
+                    self.rounds[round]['log_eval'].append((f'Round {round}', f'Round {i} nodes') + _p + _cm)
 
 
             if self.verbose >= 2:
                 verPrint(self.verbose, 2, '---\nPREDICTION RESULT - SEEDS')
                 _p, _cm = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Seeds - Current')
-                self.rounds[round]['log_train'].append((f'Round {round}', f'Seed - current prediction') + _p + _cm)
+                self.rounds[round]['log_eval'].append((f'Round {round}', f'Seed - current prediction') + _p + _cm)
 
                 _p, _cm = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round-1]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Seeds - Prev')
-                self.rounds[round]['log_train'].append((f'Round {round}', f'Seed - previous prediction') + _p + _cm)
+                self.rounds[round]['log_eval'].append((f'Round {round}', f'Seed - previous prediction') + _p + _cm)
 
 
 # TODO: Try other dataset
