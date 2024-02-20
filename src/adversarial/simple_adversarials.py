@@ -224,7 +224,7 @@ class MixingAdversary(BaseAdversary):
             permuted_idx_mask = {key: torch.randperm(val.shape[0]) for key, val in init_idx.items()} # Dict containing permutation mask for the index of each node
 
             node_idx, mixed, constant = zip(*[(key, init_idx[key][val[:round(val.shape[0] * self.conn_coef)]], init_idx[key][val[round(val.shape[0] * self.conn_coef):]]) for key, val in permuted_idx_mask.items()]) # Mixed is the list of edge index that will be swapped, constant is list of edge index that stays 
-            final_idx = { i[0]: torch.cat(i[1:]) for i in list(zip(node_idx, random.sample(mixed, len(mixed)), constant)) } # Just concat mixed and stay then make into dictionary
+            final_idx = { i[0]: torch.cat(i[1:]) for i in list(zip(node_idx, random.permutation(mixed), constant)) } # Just concat mixed and stay then make into dictionary
             
             dst, src_idx = zip(*[(torch.full(value.shape, key), value) for key, value in final_idx.items()]) # Now we have edge list but remember that src is still idx
             dst = torch.cat(list(dst))
