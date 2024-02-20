@@ -178,7 +178,6 @@ class MultiroundExperiment(object):
                     # TODO: Postbackprop for batch
             
             # Evaluate
-            verPrint(self.verbose, 2, 'Evaluate')
             self.model.eval()
             probs = self.logits.softmax(1)
 
