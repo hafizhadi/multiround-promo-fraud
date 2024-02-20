@@ -136,13 +136,13 @@ class MultiroundExperiment(object):
 
             if self.train_config['train_mode'] != 'batch':
                 # Forward pass
-                verPrint(self.verbose, 2, 'Forward')
+                verPrint(self.verbose, 4, 'Forward')
                 logits, loss = self.model(self.dset['graph'], features, **{'epoch': e})
                 self.logits = logits
                 epoch_loss = loss if loss != None else self.loss(logits[self.dset['graph'].ndata['train_mask']], labels[self.dset['graph'].ndata['train_mask']], weight=torch.tensor([1., self.train_config['ce_weight']]))
 
                 # Backward pass
-                verPrint(self.verbose, 2, 'Backward')
+                verPrint(self.verbose, 4, 'Backward')
                 self.optimizer.zero_grad()
                 epoch_loss.backward()
                 self.optimizer.step()
@@ -155,7 +155,7 @@ class MultiroundExperiment(object):
                     i += 1
 
                     # Batch forward
-                    verPrint(self.verbose, 2, f'Forward for batch {i}')
+                    verPrint(self.verbose, 4, f'Forward for batch {i}')
                     blocks = [b.to(torch.device('cuda')) for b in blocks]
                     input_features = blocks[0].srcdata['feature']
                     output_labels = blocks[-1].dstdata['label']
@@ -165,15 +165,15 @@ class MultiroundExperiment(object):
                     epoch_loss = loss if loss != None else self.loss(logits, output_labels, weight=torch.tensor([1., self.train_config['ce_weight']]).to(torch.device('cuda')))
 
                     # Backward pass
-                    verPrint(self.verbose, 2, 'Backward')
+                    verPrint(self.verbose, 4, 'Backward')
                     self.optimizer.zero_grad()
                     epoch_loss.backward()
                     self.optimizer.step()
 
                     # The following code is used to record the memory usage
                     py_process = psutil.Process(os.getpid())
-                    verPrint(self.verbose, 3, f'CPU Memory Usage: {py_process.memory_info().rss / (1024 ** 3)} GB')
-                    verPrint(self.verbose, 3, f'GPU Memory Usage: {torch.cuda.memory_reserved() / (1024 ** 3)} GB')
+                    verPrint(self.verbose, 5, f'CPU Memory Usage: {py_process.memory_info().rss / (1024 ** 3)} GB')
+                    verPrint(self.verbose, 5, f'GPU Memory Usage: {torch.cuda.memory_reserved() / (1024 ** 3)} GB')
 
                     # TODO: Postbackprop for batch
             
@@ -193,10 +193,10 @@ class MultiroundExperiment(object):
                 final_tpre = tpre
                 final_tmf1 = tmf1
                 final_tauc = tauc
-            verPrint(self.verbose, 2, 'Epoch {}, loss: {:.4f}, val mf1: {:.4f}, (best {:.4f})'.format(e, epoch_loss, f1, best_f1))
+            verPrint(self.verbose, 4, 'Epoch {}, loss: {:.4f}, val mf1: {:.4f}, (best {:.4f})'.format(e, epoch_loss, f1, best_f1))
 
         time_end = time.time()
-        verPrint(self.verbose, 3, f'time cost: {str(time_end - time_start)} s')
+        verPrint(self.verbose, 5, f'time cost: {str(time_end - time_start)} s')
         verPrint(self.verbose, 1, 'Test: REC {:.2f} PRE {:.2f} MF1 {:.2f} AUC {:.2f}'.format(final_trec*100, final_tpre*100, final_tmf1*100, final_tauc*100))
         verPrint(self.verbose, 1, 'Ending training!\n=========')
         return final_tmf1, final_tauc
@@ -324,27 +324,31 @@ class MultiroundExperiment(object):
         # Train
         self.model_round_train(round)
 
-        # Predict
+        # Predict and display result
         self.rounds[round]['preds'], self.rounds[round]['probs'], self.rounds[round]['checks'] = self.model_round_predict()
         self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][0]] = self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][0]] | True
-        self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][1]] = self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][1]] | True
-
-        round_mask = (self.dset['graph'].ndata['creation_round'] == round).nonzero().flatten()
-        non_round_mask = (self.dset['graph'].ndata['creation_round'] < round).nonzero().flatten()
+        self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][1]] = self.dset['graph'].ndata['predicted'][self.rounds[round]['checks'][1]] | True        
         labels = self.dset['graph'].ndata['label']
         
         verPrint(self.verbose, 1, 'PREDICTION RESULT - DATASET')
-        _ = eval_and_print(self.verbose, labels, self.rounds[round]['preds'], self.rounds[round]['probs'], 'Dataset - Overall')
+        _p, _cm = eval_and_print(self.verbose, labels, self.rounds[round]['preds'], self.rounds[round]['probs'], 'Dataset - Overall')
 
         if round > 0:
-            _ = eval_and_print(self.verbose, labels[non_round_mask], self.rounds[round]['preds'][non_round_mask], self.rounds[round]['probs'][non_round_mask], 'Dataset - Non-round Only')
-            _ = eval_and_print(self.verbose, labels[round_mask], self.rounds[round]['preds'][round_mask], self.rounds[round]['probs'][round_mask], 'Dataset - Round Only')
+            if self.verbose < 3:
+                round_mask = (self.dset['graph'].ndata['creation_round'] == round).nonzero().flatten()
+                non_round_mask = (self.dset['graph'].ndata['creation_round'] < round).nonzero().flatten()
+                _p, _cm = eval_and_print(self.verbose, labels[non_round_mask], self.rounds[round]['preds'][non_round_mask], self.rounds[round]['probs'][non_round_mask], 'Dataset - Non-round Only')
+                _p, _cm = eval_and_print(self.verbose, labels[round_mask], self.rounds[round]['preds'][round_mask], self.rounds[round]['probs'][round_mask], 'Dataset - Round Only')
+            else:
+                for i in range(round):
+                    i_round_mask = (self.dset['graph'].ndata['creation_round'] == i).nonzero().flatten()
+                    _p, _cm = eval_and_print(self.verbose, labels[i_round_mask], self.rounds[round]['preds'][i_round_mask], self.rounds[round]['probs'][i_round_mask], f'Dataset - Round {i}')
 
 
-            verPrint(self.verbose, 1, '---\nPREDICTION RESULT - SEEDS')
-            _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Seeds - Current')
-            _ = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round-1]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Seeds - Prev')
+            if self.verbose >= 2:
+                verPrint(self.verbose, 2, '---\nPREDICTION RESULT - SEEDS')
+                _p, _cm = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Seeds - Current')
+                _p, _cm = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round-1]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Seeds - Prev')
 
 
 # TODO: Try other dataset
-# TODO: Adjust perturbation to be percentage of current degree and mutation
