@@ -34,14 +34,14 @@ class ReplayAdversary(BaseAdversary):
 ######################
     
 class BasePerturbationAdversary(BaseAdversary):
-    def __init__(self, feat_budget=1.0, conn_budget=0.1, greedy_seed=False, verbose=0, **kwargs):
-        verPrint(verbose, 3, f'START - {type(self).__name__}:__init__ | feat_budget: {feat_budget},  conn_budget: {conn_budget}, greedy_seed: {greedy_seed}')
+    def __init__(self, feat_coef=1.0, conn_coef=0.1, greedy_seed=False, verbose=0, **kwargs):
+        verPrint(verbose, 3, f'START - {type(self).__name__}:__init__ | feat_coef: {feat_coef},  conn_coef: {conn_coef}, greedy_seed: {greedy_seed}')
 
         super().__init__()
         self.verbose=verbose              
         self.greedy_seed = greedy_seed
-        self.feat_budget = feat_budget
-        self.conn_budget = conn_budget
+        self.feat_coef = feat_coef
+        self.conn_coef = conn_coef
 
         verPrint(verbose, 3, f'FINISH - {type(self).__name__}:__init__')
     
@@ -103,19 +103,19 @@ class RelativePerturbationAdversary(BasePerturbationAdversary):
         replay_node, replay_edge, old_ids, new_ids =  BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids, prio_pool=prio_pool, verbose=self.verbose)
 
         ## FEATURE PERTURBATION ##
-        verPrint(self.verbose, 4, f'Perturbing each feature at max for {self.feat_budget} times its stdev...')
+        verPrint(self.verbose, 4, f'Perturbing each feature at max for {self.feat_coef} times its stdev...')
         feats = replay_node['feature'].clone()
-        perturb_final = torch.std(feats, dim=0) * ((torch.rand(feats.shape) - 0.5) * 2) * self.feat_budget
+        perturb_final = torch.std(feats, dim=0) * ((torch.rand(feats.shape) - 0.5) * 2) * self.feat_coef
         replay_node['feature'] = feats + perturb_final
 
         ## STRUCTURAL PERTURBATION ## TODO: Directed version
         for val in [r for r in graph.etypes if r != 'homo']:
-            verPrint(self.verbose, 4, f'Perturbing structure for relation {val} at most for {self.conn_budget} times its degree')
+            verPrint(self.verbose, 4, f'Perturbing structure for relation {val} at most for {self.conn_coef} times its degree')
 
             # Get randomized perturbation amount based on the max budget
             counter = dict(Counter(replay_edge[val]['in']['dst'].tolist()))
             degrees = torch.tensor([counter[id] for id in new_ids.tolist()], dtype=torch.long) # Get degrees of each nodes
-            perturb_amount = (degrees * torch.rand(degrees.shape) * self.conn_budget).round()
+            perturb_amount = (degrees * torch.rand(degrees.shape) * self.conn_coef).round()
             perturb_minus, perturb_plus = BasePerturbationAdversary.split_connection_budget(degrees, perturb_amount)
             
             # Get rewiring based on perturbation amount
@@ -138,16 +138,16 @@ class AbsolutePerturbationAdversary(BasePerturbationAdversary):
         replay_node, replay_edge, old_ids, new_ids =  BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids, prio_pool=prio_pool, verbose=self.verbose)
 
         ## FEATURE PERTURBATION ##
-        verPrint(self.verbose, 4, f'Perturbing feature with absolute an budget of {self.feat_budget}...')
+        verPrint(self.verbose, 4, f'Perturbing feature with absolute an budget of {self.feat_coef}...')
         feats = replay_node['feature'].clone()
         perturb_weight = torch.rand(feats.shape)
         perturb_weight = perturb_weight / perturb_weight.sum(dim=1).unsqueeze(1) # This is the distribution for the noise over the entire feature dimension for each node
-        perturb_amount = torch.rand(feats.shape[0]) * self.feat_budget # This is the amount of noise for each node
+        perturb_amount = torch.rand(feats.shape[0]) * self.feat_coef # This is the amount of noise for each node
         perturb_final = (perturb_weight * perturb_amount.unsqueeze(1)) * (torch.rand(feats.shape) - 0.5).sign() # Randomize noise sign
         replay_node['feature'] = feats + perturb_final
 
         ## STRUCTURAL PERTURBATION ## TODO: Directed version
-        verPrint(self.verbose, 4, f'Perturbing structure with an absolute budget of {self.conn_budget}...')
+        verPrint(self.verbose, 4, f'Perturbing structure with an absolute budget of {self.conn_coef}...')
         
         # Distribute budget over relations
         rels = [r for r in graph.etypes if r != 'homo'] # Exception for H2F
@@ -155,8 +155,8 @@ class AbsolutePerturbationAdversary(BasePerturbationAdversary):
         while rounding_error != 0: # Split budget over all edge relations
             perturb_weight = torch.rand((1, len(rels)))
             perturb_weight = perturb_weight / perturb_weight.sum(dim=1).unsqueeze(1)
-            rel_budgets = (perturb_weight * self.conn_budget).round().long()
-            rounding_error = rel_budgets.sum() - self.conn_budget
+            rel_budgets = (perturb_weight * self.conn_coef).round().long()
+            rounding_error = rel_budgets.sum() - self.conn_coef
         
         # Iterate over relation type
         for idx, val in enumerate(rels):
@@ -177,4 +177,62 @@ class AbsolutePerturbationAdversary(BasePerturbationAdversary):
             replay_edge[val]['out'] = { feat: torch.cat([d['out'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['out'].keys() }
     
         verPrint(self.verbose, 3, f'FINISH - RelativePerturbationAdversary:generate | replay_node: {replay_node}, replay_edge: {replay_edge}, old_ids: {old_ids},  return_ids: {return_ids}')
+        return replay_node, replay_edge, old_ids, new_ids
+
+################
+# MIXING BASED #
+################
+
+class MixingAdversary(BaseAdversary):
+    def __init__(self, feat_coef=1.0, conn_coef=0.1, greedy_seed=False, verbose=0, **kwargs):
+        verPrint(verbose, 3, f'START - MixingAdversary:__init__ | feat_coef: {feat_coef},  conn_coef: {conn_coef}, greedy_seed: {greedy_seed}')
+
+        super().__init__()
+        self.verbose=verbose              
+        self.greedy_seed = greedy_seed
+        self.feat_coef = feat_coef
+        self.conn_coef = conn_coef
+
+        verPrint(verbose, 3, f'FINISH - MixingAdversary:__init__')
+    
+    def generate(self, graph, n_instances=1, return_ids=False, **kwargs):
+        verPrint(self.verbose, 3, f'START - MixingAdversary:generate | n_instances: {n_instances},  return_ids: {return_ids}, greedy: {self.greedy_seed}')
+
+        # Get seed node with priority pool if any
+        prio_pool = torch.tensor([], dtype=torch.long) if (not self.greedy_seed) else ((graph.ndata['predicted'] == False) & (graph.ndata['label'] == 1)).nonzero().flatten()
+        replay_node, replay_edge, old_ids, new_ids =  BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids, prio_pool=prio_pool, verbose=self.verbose)
+
+        ## FEATURE MIXING ##
+        verPrint(self.verbose, 4, f'Mixing {self.feat_coef} percent of all of the seeds features')
+        
+        # Get number of feature mutated and randomly get their index
+        feats = replay_node['feature'].clone()
+        num_mutated = round(self.feat_coef  * feats.shape[1])
+        idx_mutated = torch.randperm(feats.shape[1])[:num_mutated]
+
+        # Shuffle the feature in each index among the seed
+        for idx in idx_mutated:
+            data_mutated = feats[:, idx].clone()
+            feats[:, idx] = data_mutated[torch.randperm(data_mutated.shape[0])]
+        replay_node['feature'] = feats
+
+        ## STRUCTURAL MIXING ## TODO: Directed version
+        for val in [r for r in graph.etypes if r != 'homo']:
+            verPrint(self.verbose, 4, f'Perturbing structure for relation {val} at most for {self.conn_coef} times its degree')
+
+            # Get randomized perturbation amount based on the max budget
+            counter = dict(Counter(replay_edge[val]['in']['dst'].tolist()))
+            degrees = torch.tensor([counter[id] for id in new_ids.tolist()], dtype=torch.long) # Get degrees of each nodes
+            perturb_amount = (degrees * torch.rand(degrees.shape) * self.conn_coef).round()
+            perturb_minus, perturb_plus = BasePerturbationAdversary.split_connection_budget(degrees, perturb_amount)
+            
+            # Get rewiring based on perturbation amount
+            todos = list(zip(new_ids.tolist(), perturb_minus.tolist(), perturb_plus.tolist()))
+            reduceds, addeds = BasePerturbationAdversary.get_rewires(todos, replay_edge, val, min(new_ids))
+
+            # Replace data in seed container
+            replay_edge[val]['in'] = { feat: torch.cat([d['in'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['in'].keys() }
+            replay_edge[val]['out'] = { feat: torch.cat([d['out'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['out'].keys() }
+        
+        verPrint(self.verbose, 3, f'FINISH - MixingAdversary:generate | replay_node: {replay_node}, replay_edge: {replay_edge}, old_ids: {old_ids},  return_ids: {return_ids}')
         return replay_node, replay_edge, old_ids, new_ids

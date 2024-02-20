@@ -23,7 +23,7 @@ class BaseAdversary():
         rest_instances = max([0, n_instances - prio_pool.shape[0]])
 
         # Create pool of IDs to randomly choose from
-        pool_ids = list(range(graph.num_nodes()), dtype=torch.long) if label == None else (graph.ndata['label'] == label).nonzero().flatten().tolist()
+        pool_ids = list(range(graph.num_nodes())) if label == None else (graph.ndata['label'] == label).nonzero().flatten().tolist()
         pool_ids = torch.tensor(list(set(pool_ids) - set(prio_pool.tolist())), dtype=torch.long)
 
         # Choose seeds from pool and map new + old Node ID
