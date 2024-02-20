@@ -218,21 +218,20 @@ class MixingAdversary(BaseAdversary):
 
         ## STRUCTURAL MIXING ## TODO: Directed version
         for val in [r for r in graph.etypes if r != 'homo']:
-            verPrint(self.verbose, 4, f'Perturbing structure for relation {val} at most for {self.conn_coef} times its degree')
+            verPrint(self.verbose, 4, f'Mixing {self.conn_coef} percent of all of the seeds edges')
 
-            # Get randomized perturbation amount based on the max budget
-            counter = dict(Counter(replay_edge[val]['in']['dst'].tolist()))
-            degrees = torch.tensor([counter[id] for id in new_ids.tolist()], dtype=torch.long) # Get degrees of each nodes
-            perturb_amount = (degrees * torch.rand(degrees.shape) * self.conn_coef).round()
-            perturb_minus, perturb_plus = BasePerturbationAdversary.split_connection_budget(degrees, perturb_amount)
+            init_idx = {id.item(): (replay_edge['_E']['in']['dst'] == id).nonzero().flatten() for id in new_ids} # Dict containing all original index of each node in the edge list
+            permuted_idx_mask = {key: torch.randperm(val.shape[0]) for key, val in init_idx.items()} # Dict containing permutation mask for the index of each node
+
+            node_idx, mixed, constant = zip(*[(key, init_idx[key][val[:round(val.shape[0] * self.conn_coef)]], init_idx[key][val[round(val.shape[0] * self.conn_coef):]]) for key, val in permuted_idx_mask.items()]) # Mixed is the list of edge index that will be swapped, constant is list of edge index that stays 
+            final_idx = { i[0]: torch.cat(i[1:]) for i in list(zip(node_idx, random.sample(mixed, len(mixed)), constant)) } # Just concat mixed and stay then make into dictionary
             
-            # Get rewiring based on perturbation amount
-            todos = list(zip(new_ids.tolist(), perturb_minus.tolist(), perturb_plus.tolist()))
-            reduceds, addeds = BasePerturbationAdversary.get_rewires(todos, replay_edge, val, min(new_ids))
+            dst, src_idx = zip(*[(torch.full(value.shape, key), value) for key, value in final_idx.items()]) # Now we have edge list but remember that src is still idx
+            dst = torch.cat(list(dst))
+            src = replay_edge['_E']['in']['src'][torch.cat(list(src_idx))].clone() # Use the idx on the original edge data to get actual src idx
 
             # Replace data in seed container
-            replay_edge[val]['in'] = { feat: torch.cat([d['in'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['in'].keys() }
-            replay_edge[val]['out'] = { feat: torch.cat([d['out'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['out'].keys() }
+            replay_edge[val] = {'in': { 'src': src, 'dst': dst }, 'out': { 'src': dst, 'dst': src }}
         
         verPrint(self.verbose, 3, f'FINISH - MixingAdversary:generate | replay_node: {replay_node}, replay_edge: {replay_edge}, old_ids: {old_ids},  return_ids: {return_ids}')
         return replay_node, replay_edge, old_ids, new_ids
