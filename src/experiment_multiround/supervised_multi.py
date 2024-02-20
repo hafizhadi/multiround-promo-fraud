@@ -347,7 +347,7 @@ class MultiroundExperiment(object):
                 _p, _cm = eval_and_print(self.verbose, labels[non_round_mask], self.rounds[round]['preds'][non_round_mask], self.rounds[round]['probs'][non_round_mask], 'Dataset - Non-round Only')
                 _p, _cm = eval_and_print(self.verbose, labels[round_mask], self.rounds[round]['preds'][round_mask], self.rounds[round]['probs'][round_mask], 'Dataset - Round Only')
             else:
-                for i in range(round):
+                for i in range(round + 1):
                     i_round_mask = (self.dset['graph'].ndata['creation_round'] == i).nonzero().flatten()
                     _p, _cm = eval_and_print(self.verbose, labels[i_round_mask], self.rounds[round]['preds'][i_round_mask], self.rounds[round]['probs'][i_round_mask], f'Dataset - Round {i}')
                     self.rounds[round]['log_eval'].append((f'Round {round}', f'Round {i} nodes') + _p + _cm)
