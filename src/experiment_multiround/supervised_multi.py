@@ -219,8 +219,7 @@ class MultiroundExperiment(object):
             preds[probs[:, 1] > thres] = 1
 
             _p, _cm  = eval_and_print(0, labels[self.dset['graph'].ndata['test_mask']], preds[self.dset['graph'].ndata['test_mask']], probs[self.dset['graph'].ndata['test_mask']][:, 1], f'Epoch {e}')
-            self.rounds[self.current_round]['log_eval'].append((f'Round {self.current_round}', f'Epoch {e}') + _p + _cm)
-            print(epoch_loss.item())
+            self.rounds[self.current_round]['log_eval'].append((f'Round {self.current_round}', f'Epoch {e}', f'{epoch_loss:.4f}') + _p + _cm)
 
             trec, tpre, tmf1, tauc = _p
             if best_f1 < f1:
