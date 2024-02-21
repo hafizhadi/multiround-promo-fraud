@@ -241,7 +241,7 @@ class MultiroundExperiment(object):
         verPrint(self.verbose, 5, f'time cost: {str(time_end - time_start)} s')
         verPrint(self.verbose, 1, f'Test: REC {final_trec*100:.2f} PRE {final_tpre*100:.2f} MF1 {final_tmf1*100:.2f} AUC {final_tauc*100:.2f} TP {final_tp} FP {final_fp} TN {final_tn} FN {final_fn}')
         
-        self.rounds[round]['log_eval'].append((f'round_{round}', f'train', (time_end - time_start), final_trec, final_tpre, final_tmf1, final_tauc, final_tp, final_fp, final_tn, final_fn))
+        self.rounds[self.current_round]['log_eval'].append((f'round_{self.current_round}', f'train', (time_end - time_start), final_trec, final_tpre, final_tmf1, final_tauc, final_tp, final_fp, final_tn, final_fn))
 
         verPrint(self.verbose, 1, 'Ending training!\n=========')
         return final_tmf1, final_tauc
