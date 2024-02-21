@@ -150,6 +150,8 @@ class MultiroundExperiment(object):
     def model_train(self):
         # Inits
         best_f1, final_tf1, final_trec, final_tpre, final_tmf1, final_tauc = 0., 0., 0., 0., 0., 0.
+        final_tp, final_fp, final_tn, final_fn = 0, 0, 0, 0
+
         self.optimizer = self.train_config['optimizer'](self.model.parameters(), lr=self.train_config['learning_rate'])
         self.loss = self.train_config['loss']
 
@@ -222,17 +224,25 @@ class MultiroundExperiment(object):
             self.rounds[self.current_round]['log_train'].append((f'Round {self.current_round}', f'Epoch {e}', f'{epoch_loss:.4f}') + _p + _cm)
 
             trec, tpre, tmf1, tauc = _p
+            tp, fp, tn, fn = _cm
             if best_f1 < f1:
                 best_f1 = f1
                 final_trec = trec
                 final_tpre = tpre
                 final_tmf1 = tmf1
                 final_tauc = tauc
+                final_tp = tp
+                final_fp = fp
+                final_tn = tn
+                final_fn = fn
             verPrint(self.verbose, 4, 'Epoch {}, loss: {:.4f}, val mf1: {:.4f}, (best {:.4f})'.format(e, epoch_loss, f1, best_f1))
 
         time_end = time.time()
         verPrint(self.verbose, 5, f'time cost: {str(time_end - time_start)} s')
-        verPrint(self.verbose, 1, 'Test: REC {:.2f} PRE {:.2f} MF1 {:.2f} AUC {:.2f}'.format(final_trec*100, final_tpre*100, final_tmf1*100, final_tauc*100))
+        verPrint(self.verbose, 1, f'Test: REC {final_trec*100,:.2f} PRE {final_tpre*100,:.2f} MF1 {final_tmf1*100:.2f} AUC {final_tauc*100:.2f} TP {final_tp} FP {final_fp} TN {final_tn} FN {final_fn}')
+        
+        self.rounds[round]['log_eval'].append((f'round_{round}', f'train', (time_end - time_start), final_trec, final_tpre, final_tmf1, final_tauc, final_tp, final_fp, final_tn, final_fn))
+
         verPrint(self.verbose, 1, 'Ending training!\n=========')
         return final_tmf1, final_tauc
 
@@ -338,7 +348,7 @@ class MultiroundExperiment(object):
         
         verPrint(self.verbose, 1, 'PREDICTION RESULT - DATASET')
         _p, _cm = eval_and_print(self.verbose, labels, self.rounds[round]['preds'], self.rounds[round]['probs'], 'Dataset - Overall')
-        self.rounds[round]['log_eval'].append((f'Round {round}', 'Overall') + _p + _cm)
+        self.rounds[round]['log_eval'].append((f'round_{round}', 'entire_graph', 0) + _p + _cm)
 
         if round > 0:
             if self.verbose < 3:
@@ -350,16 +360,16 @@ class MultiroundExperiment(object):
                 for i in range(round + 1):
                     i_round_mask = (self.dset['graph'].ndata['creation_round'] == i).nonzero().flatten()
                     _p, _cm = eval_and_print(self.verbose, labels[i_round_mask], self.rounds[round]['preds'][i_round_mask], self.rounds[round]['probs'][i_round_mask], f'Dataset - Round {i}')
-                    self.rounds[round]['log_eval'].append((f'Round {round}', f'Round {i} nodes') + _p + _cm)
+                    self.rounds[round]['log_eval'].append((f'round_{round}', f'round_{i}_nodes', 0) + _p + _cm)
 
 
             if self.verbose >= 2:
                 verPrint(self.verbose, 2, '---\nPREDICTION RESULT - SEEDS')
                 _p, _cm = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Seeds - Current')
-                self.rounds[round]['log_eval'].append((f'Round {round}', f'Seed - current prediction') + _p + _cm)
+                self.rounds[round]['log_eval'].append((f'round_{round}', f'seed_current_pred', 0) + _p + _cm)
 
                 _p, _cm = eval_and_print(self.verbose, labels[torch.cat([adv_seed, neg_seed], 0)], self.rounds[round-1]['preds'][torch.cat([adv_seed, neg_seed], 0)], self.rounds[round]['probs'][torch.cat([adv_seed, neg_seed], 0)], 'Seeds - Prev')
-                self.rounds[round]['log_eval'].append((f'Round {round}', f'Seed - previous prediction') + _p + _cm)
+                self.rounds[round]['log_eval'].append((f'round_{round}', f'seed_prev_pred', 0) + _p + _cm)
 
 
 # TODO: Try other dataset
