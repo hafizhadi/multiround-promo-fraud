@@ -147,7 +147,7 @@ class MultiroundExperiment(object):
         return idx_train, idx_valid, idx_test, y_train, y_valid, y_test
 
     # Train model normally on entire dataset
-    def model_train(self):
+    def model_train(self, num_epoch):
         # Inits
         best_f1, final_tf1, final_trec, final_tpre, final_tmf1, final_tauc = 0., 0., 0., 0., 0., 0.
         final_tp, final_fp, final_tn, final_fn = 0, 0, 0, 0
@@ -164,8 +164,7 @@ class MultiroundExperiment(object):
 
         # Various out of loop variables
         rl_idx = torch.nonzero(self.dset['graph'].ndata['train_mask'] & labels, as_tuple=False).squeeze(1)
-
-        for e in range(self.train_config['num_epoch']):
+        for e in range(num_epoch):
             self.model.train()
             self.logits = torch.zeros([len(labels), 2])
 
@@ -275,7 +274,7 @@ class MultiroundExperiment(object):
         self.dset['graph'] = model_dict[self.model_config['model_name']].prepare_graph(self.dset['graph'])
 
         # Train
-        self.model_train()
+        self.model_train(self.train_config['num_epoch'] if round == 0 else self.train_config['num_round_epoch'])
 
     # Round prediction on round
     def model_round_predict(self):
