@@ -235,7 +235,7 @@ class MultiroundExperiment(object):
                 final_fp = fp
                 final_tn = tn
                 final_fn = fn
-            verPrint(self.verbose, 4, 'Epoch {}, loss: {:.4f}, val mf1: {:.4f}, (best {:.4f})'.format(e, epoch_loss, f1, best_f1))
+            verPrint(self.verbose, 3, 'Epoch {}, loss: {:.4f}, val mf1: {:.4f}, (best {:.4f})'.format(e, epoch_loss, f1, best_f1))
 
         time_end = time.time()
         verPrint(self.verbose, 5, f'time cost: {str(time_end - time_start)} s')
@@ -373,3 +373,4 @@ class MultiroundExperiment(object):
 
 
 # TODO: Try other dataset
+# TODO: Early stopping or some shit?
