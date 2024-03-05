@@ -251,7 +251,7 @@ class H2FD(BaseModel):
             self.mine_layers.append(H2FDMultiRelationLayer(self.intra_dim * att_heads, self.num_classes, att_heads, etypes, dropout_rate, if_sum=True, verbose=self.verbose))
 
     
-    def forward(self, graph, x):
+    def forward(self, graph, x, **kwargs):
         train_mask = graph.ndata['train_mask'].bool()
         train_label = graph.ndata['label'][train_mask]
 

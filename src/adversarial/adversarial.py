@@ -21,6 +21,7 @@ class BaseAdversary():
         # Split how many comes from prio pool how many comes from rest        
         prio_instances = min([prio_pool.shape[0], n_instances])
         rest_instances = max([0, n_instances - prio_pool.shape[0]])
+        verPrint(verbose, 0, f'Seed distribution: {prio_instances} PRIO - {rest_instances} REST')
 
         # Create pool of IDs to randomly choose from
         pool_ids = list(range(graph.num_nodes())) if label == None else (graph.ndata['label'] == label).nonzero().flatten().tolist()

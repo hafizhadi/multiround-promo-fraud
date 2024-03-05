@@ -51,10 +51,10 @@ class BasePerturbationAdversary(BaseAdversary):
 
         reduceds, addeds = [], [] # Container
         for id, min_count, plus_count in todos:
-            verPrint(verbose, 4, f'Rewiring node id {id} | removing {min_count} edges and adding {plus_count} edges')
+            current_index = (edge_data[relname]['in']['dst'] == id).nonzero().flatten().tolist() # All index of Node's edge
+            verPrint(verbose, 4, f'Rewiring node id {id} with {len(current_index)} nodes| removing {min_count} edges and adding {plus_count} edges')
 
             # Get index after reduction and index for addition base
-            current_index = (edge_data[relname]['in']['dst'] == id).nonzero().flatten().tolist() # All index of Node's edge
             reduced_index = sorted(np.random.choice(current_index, len(current_index) - min_count, replace=False)) # New list of index after reduction
             added_index = sorted(np.random.choice(current_index, plus_count, replace=True))
 
@@ -84,7 +84,7 @@ class BasePerturbationAdversary(BaseAdversary):
     def split_connection_budget(degrees, perturb_amount, verbose=0):
         verPrint(verbose, 3, f'START - BasePerturbationAdversary:split_connection_budget | degrees: {degrees},  perturb_amount: {perturb_amount}')
 
-        max_minus = ((degrees + perturb_amount) / 2).floor() - 1 # Maximum deletion possible, - 1 to prevent 0 degree node
+        max_minus = torch.maximum(((degrees + perturb_amount) / 2).floor() - 1, torch.zeros(degrees.shape)) # Maximum deletion possible, - 1 to prevent 0 degree node
         perturb_minus = torch.minimum(((torch.rand(degrees.shape) * perturb_amount).round()), max_minus) # Deletion count capped by the max
         perturb_cancels = torch.minimum((degrees - perturb_minus), torch.zeros(degrees.shape)).abs() # Amount of plus and minus that cancels out if any
 
@@ -103,24 +103,24 @@ class RelativePerturbationAdversary(BasePerturbationAdversary):
         replay_node, replay_edge, old_ids, new_ids =  BaseAdversary.random_duplicate(graph, n_instances=n_instances, label=1, return_ids=return_ids, prio_pool=prio_pool, verbose=self.verbose)
 
         ## FEATURE PERTURBATION ##
-        verPrint(self.verbose, 4, f'Perturbing each feature at max for {self.feat_coef} times its stdev...')
+        verPrint(self.verbose, 4, f'Perturbing each feature for {self.feat_coef} times its stdev...')
         feats = replay_node['feature'].clone()
-        perturb_final = torch.std(feats, dim=0) * ((torch.rand(feats.shape) - 0.5) * 2) * self.feat_coef
+        perturb_final = torch.std(graph.ndata['feature'], dim=0) * torch.sign((torch.rand(feats.shape) - 0.5)) * self.feat_coef
         replay_node['feature'] = feats + perturb_final
 
         ## STRUCTURAL PERTURBATION ## TODO: Directed version
         for val in [r for r in graph.etypes if r != 'homo']:
             verPrint(self.verbose, 4, f'Perturbing structure for relation {val} at most for {self.conn_coef} times its degree')
 
-            # Get randomized perturbation amount based on the max budget
+            # Get perturbation amount
             counter = dict(Counter(replay_edge[val]['in']['dst'].tolist()))
             degrees = torch.tensor([counter[id] for id in new_ids.tolist()], dtype=torch.long) # Get degrees of each nodes
-            perturb_amount = (degrees * torch.rand(degrees.shape) * self.conn_coef).round()
+            perturb_amount = (degrees * self.conn_coef).round()
             perturb_minus, perturb_plus = BasePerturbationAdversary.split_connection_budget(degrees, perturb_amount)
             
             # Get rewiring based on perturbation amount
             todos = list(zip(new_ids.tolist(), perturb_minus.tolist(), perturb_plus.tolist()))
-            reduceds, addeds = BasePerturbationAdversary.get_rewires(todos, replay_edge, val, min(new_ids))
+            reduceds, addeds = BasePerturbationAdversary.get_rewires(todos, replay_edge, val, min(new_ids), verbose=self.verbose)
 
             # Replace data in seed container
             replay_edge[val]['in'] = { feat: torch.cat([d['in'][feat] for d in reduceds + addeds]) for feat in reduceds[0]['in'].keys() }
@@ -142,7 +142,7 @@ class AbsolutePerturbationAdversary(BasePerturbationAdversary):
         feats = replay_node['feature'].clone()
         perturb_weight = torch.rand(feats.shape)
         perturb_weight = perturb_weight / perturb_weight.sum(dim=1).unsqueeze(1) # This is the distribution for the noise over the entire feature dimension for each node
-        perturb_amount = torch.rand(feats.shape[0]) * self.feat_coef # This is the amount of noise for each node
+        perturb_amount = self.feat_coef # This is the amount of noise for each node
         perturb_final = (perturb_weight * perturb_amount.unsqueeze(1)) * (torch.rand(feats.shape) - 0.5).sign() # Randomize noise sign
         replay_node['feature'] = feats + perturb_final
 
@@ -165,7 +165,7 @@ class AbsolutePerturbationAdversary(BasePerturbationAdversary):
             # Get randomized perturbation amount based on the max budget
             counter = dict(Counter(replay_edge[val]['in']['dst'].tolist()))
             degrees = torch.tensor([counter[id] for id in new_ids.tolist()], dtype=torch.long)
-            perturb_amount = torch.randint(0, rel_budgets[idx] + 1, degrees.shape)
+            perturb_amount = torch.full(rel_budgets[idx], degrees.shape)
             perturb_minus, perturb_plus = BasePerturbationAdversary.split_connection_budget(degrees, rel_budgets[idx])
 
             # Final to-do list per node
