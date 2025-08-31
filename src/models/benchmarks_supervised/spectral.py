@@ -1,6 +1,7 @@
 from utils.utils_func import verPrint
 
 import torch
+import dgl
 import sympy
 import scipy
 import dgl.nn.pytorch.conv as dglnn
@@ -42,24 +43,10 @@ class PolyConv(nn.Module):
     
 ## Main Model
 class BWGNN(BaseModel):
-    def __init__(
-        self, in_feats, num_classes, h_feats, num_layers, mlp_num_layers,
-        dropout_rate=0, act_name='ReLU', verbose=0, **kwargs):
-        """_summary_
-
-        Args:
-            in_feats (_type_): _description_
-            num_classes (_type_): _description_
-            h_feats (_type_): _description_
-            num_layers (_type_): _description_
-            mlp_num_layers (_type_): _description_
-            dropout_rate (int, optional): _description_. Defaults to 0.
-            act_name (str, optional): _description_. Defaults to 'ReLU'.
-            verbose (int, optional): _description_. Defaults to 0.
-        """
+    def __init__(self, in_feats, num_classes, h_feats, num_layers, mlp_layers, dropout_rate=0, act_name='ReLU', verbose=0, device='cuda:0', **kwargs):
         super().__init__()
-        self.verbose=verbose       
-        verPrint(self.verbose, 3, f'BWGNN:__init__ | {in_feats} {num_classes} {h_feats} {num_layers} {mlp_num_layers} {dropout_rate} {act_name} {kwargs}')
+        self.verbose=verbose
+        self.device=device   
 
         # Misc modules
         self.act = getattr(nn, act_name)()
@@ -72,17 +59,18 @@ class BWGNN(BaseModel):
             self.conv.append(PolyConv(self.thetas[i]))
         
         # Linear and MLP
-        self.linear = nn.Linear(in_feats, h_feats)
-        self.linear2 = nn.Linear(h_feats, h_feats)
-        self.mlp = MLP(h_feats * len(self.thetas), h_feats, num_classes, mlp_num_layers, dropout_rate)
+        self.linear = nn.Linear(in_feats, h_feats).to(device)
+        self.linear2 = nn.Linear(h_feats, h_feats).to(device)
+        self.mlp = MLP(h_feats * len(self.thetas), h_feats, num_classes, mlp_layers, dropout_rate, device=device)
 
 
     def forward(self, blocks, x, **kwargs):
-        verPrint(self.verbose, 3, f'BWGNN:forward | {blocks} {x}')
-
-        # TODO: Batch
-        graph = blocks
-
+        h_final = self.embed_nodes(blocks, x)
+        h = self.mlp(h_final, False)
+        
+        return h, None, None # No loss returned
+    
+    def embed_nodes(self, graph, x):
         in_feat = x
         h = self.linear(in_feat)
         h = self.act(h)
@@ -94,9 +82,8 @@ class BWGNN(BaseModel):
             h0 = conv(graph, h)
             h_final = torch.cat([h_final, h0], -1)
         h_final = self.dropout(h_final)
-        h = self.mlp(h_final, False)
-        
-        return h, None # No loss returned
+
+        return h_final
     
     def calculate_theta(self, d):
         thetas = []
@@ -109,13 +96,43 @@ class BWGNN(BaseModel):
                 inv_coeff.append(float(coeff[d-i]))
             thetas.append(inv_coeff)
         return thetas
-
-## GHRN -> https://github.com/squareRoot3/GADBench
-class GHRN(BaseModel):
-    def __init__():
-        super().__init__(self)
     
-    def forward(self, graph):
-        return 0
+### GHRN ###
+class GHRN(BWGNN):
+    def __init__(self, in_feats, num_classes, h_feats, num_layers, mlp_layers, drop_rate=0.1, dropout_rate=0, act_name='ReLU', verbose=0, device='cuda:0', **kwargs):
+        super().__init__(in_feats, num_classes, h_feats, num_layers, mlp_layers, dropout_rate=dropout_rate, act_name=act_name, verbose=verbose, device=device, **kwargs)
+        self.drop_rate = drop_rate # Sparsification droprate
 
-## SPLITGNN -> https://github.com/Split-GNN/SplitGNN/tree/master/src
+    def random_walk_update(self):
+        graph = self.graph
+
+        edge_weight = torch.ones(graph.num_edges()).to(self.device)
+        norm = dgl.nn.pytorch.conv.EdgeWeightNorm(norm='both')
+        
+        graph.edata['w'] = norm(graph, edge_weight)
+        aggregate_fn = fn.u_mul_e('h', 'w', 'm')
+        reduce_fn = fn.sum(msg='m', out='ay')
+
+        graph.ndata['h'] = graph.ndata['feature']
+        graph.update_all(aggregate_fn, reduce_fn)
+        graph.ndata['ly'] = graph.ndata['feature'] - graph.ndata['ay']
+        
+        graph.apply_edges(self.inner_product_black)
+        black = graph.edata['inner_black']
+        
+        threshold = int(self.drop_rate * graph.num_edges())
+        edge_to_move = set(black.sort()[1][:threshold].tolist())
+        graph_new = dgl.remove_edges(graph, list(edge_to_move))
+        
+        return graph_new
+
+    def inner_product_black(self, edges):
+        inner_black = (edges.src['ly'] * edges.dst['ly']).sum(axis=1)
+        return {'inner_black': inner_black}
+    
+    def preprocess_graph(self, round_num):
+        if self.drop_rate != 0.:
+            new_graph = self.random_walk_update()
+            new_graph = dgl.add_self_loop(dgl.remove_self_loop(new_graph))
+
+            self.graph = new_graph
