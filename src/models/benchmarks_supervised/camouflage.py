@@ -1,4 +1,4 @@
-from utils_func import verPrint, hinge_loss
+from utils.utils_func import verPrint, hinge_loss
 
 import torch
 import dgl

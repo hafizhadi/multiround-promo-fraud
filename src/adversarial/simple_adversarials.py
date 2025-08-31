@@ -4,7 +4,7 @@ import numpy as np
 
 from collections import Counter
 from adversarial.adversarial import BaseAdversary
-from utils_func import verPrint
+from utils.utils_func import verPrint
 
 #################
 # SIMPLE REPLAY #

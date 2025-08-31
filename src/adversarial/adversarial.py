@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 from numpy import random
-from utils_func import verPrint
+from utils.utils_func import verPrint
 
 ##########################
 # BASE ADVERSARIAL CLASS #

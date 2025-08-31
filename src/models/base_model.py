@@ -1,4 +1,4 @@
-from utils_func import verPrint
+from utils.utils_func import verPrint
 from torch import nn
 
 class BaseModel(nn.Module):

@@ -21,15 +21,15 @@ class GIN_noparam(nn.Module):
 class GraphBoost():
     def __init__(self, boost_agg_backbone, boost_predictor, boost_metric, **kwargs):
         self.eval_metric = boost_metric
-        self.agg_backbone = boost_agg_backbone().to('cpu') # TODO: pass model config
+        self.agg_backbone = boost_agg_backbone().to('cpu') if boost_agg_backbone != None else None # TODO: pass model config
         self.predictor = boost_predictor(eval_metric=self.eval_metric)
 
     def __call__(self, graph, feats, **kwargs):
-        agg_feats = self.agg_backbone(graph)        
+        agg_feats = self.agg_backbone(graph) if self.agg_backbone != None else graph.ndata['feature']        
         return torch.tensor(self.predictor.predict_proba(agg_feats)), None
 
     def train(self, graph, weight):
-        feats = self.agg_backbone(graph)
+        feats = self.agg_backbone(graph) if self.agg_backbone != None else graph.ndata['feature']
         labels = graph.ndata['label']
 
         train_X = feats[graph.ndata['train_mask']].cpu().numpy()
