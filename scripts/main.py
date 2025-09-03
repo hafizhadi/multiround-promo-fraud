@@ -235,7 +235,7 @@ def main(cname):
     # Save overall artifacts
     if main_config['save_df']:
       final_outer_df = pd.concat(outer_dfs)
-      final_outer_df.to_csv(f'../result/{cname}/{ts}/{ts}.csv')
+      final_outer_df.to_csv(f'../result/{cname}/{ts}/combined_result.csv')
 
 if __name__ == "__main__":
 
