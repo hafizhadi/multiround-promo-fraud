@@ -1,10 +1,3 @@
-# Informations
-## Running Environment and Requirements
-
-## Functionality
-
-# Readme
-
 ## Requirements
 The program was developed and tested using the following library versions:
 
@@ -20,10 +13,13 @@ torch==2.2.2
 torch_geometric==2.5.3
 xgboost==2.0.3
 ```
+
 ## Installation
+```
+python setup.py install
+```
 
 ## Run
-
 ### Datasets
 All datasets should be placed directly in `\dataset` in a DGL readable format as shown for the `tolokers` dataset. 
 At the moment only the `tolokers` dataset is hosted on Github. In the meantime, please directly contact the corresponding author  at hafizh(@)net.comp.isct.ac.jp for the other datasets.
@@ -43,4 +39,8 @@ All outputs will be generated under the `\result` folder. Each experiment will g
 The notebook `\notebook\example_data_process.csv` contains example codes to interpret and process the experiment results.
 ### Configurations
 All configuration to the parameter should be specified using a `.json` file placed in the `\scripts` folder. An example of the config file is shown in `scripts/config_example.json`. For a list of all parameters that are available to place under the `EXP_DICT` item, refer to the source file `\src\utils\utils_const.py`
+
 ## Citations
+```
+to be added
+```
