@@ -44,3 +44,6 @@ All configuration to the parameter should be specified using a `.json` file plac
 ```
 to be added
 ```
+
+## Copyright
+© 2025 National Institute of Advanced Industrial Science and Technology (AIST)
